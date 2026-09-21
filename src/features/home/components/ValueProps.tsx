@@ -1,18 +1,28 @@
-import { ShieldCheck, Armchair, Clock } from 'lucide-react';
+import React from 'react';
 
-const features = [
+interface Feature {
+  imageSrc: string;
+  title: string;
+  description: React.ReactNode; 
+}
+
+const features: Feature[] = [
   {
-    icon: ShieldCheck,
+    imageSrc: '/icons/segure.png',
     title: 'SEGURIDAD',
-    description: 'Tu viaje, nuestra prioridad.',
+    description: (
+      <>
+        Tu viaje, nuestra <br /> prioridad.
+      </>
+    ),
   },
   {
-    icon: Armchair,
+    imageSrc: '/icons/seat.png',
     title: 'CONFORT',
     description: 'Un viaje placentero de principio a fin.',
   },
   {
-    icon: Clock,
+    imageSrc: '/icons/time.png',
     title: 'PUNTUALIDAD',
     description: 'Llegamos a tiempo, siempre.',
   },
@@ -20,21 +30,26 @@ const features = [
 
 export function ValueProps() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 border-t border-amber-200/20 max-w-2xl">
-      {features.map((item, index) => {
-        const Icon = item.icon;
-        return (
-          <div key={index} className="flex flex-col items-center gap-1 text-white text-center">
-            <Icon className="w-[1.725rem] h-[1.725rem] text-amber-400 mb-1" />
-            <h4 className="text-[0.8625rem] font-bold tracking-widest text-white uppercase">
-              {item.title}
-            </h4>
-            <p className="text-[0.8625rem] text-white leading-relaxed">
-              {item.description}
-            </p>
-          </div>
-        );
-      })}
+    <div className="flex flex-col gap-6 max-w-2xl">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6 border-t border-amber-200/20">
+        {features.map((item, index) => {
+          return (
+            <div key={index} className="flex flex-col items-center gap-1 text-white text-center">
+              <img 
+                src={item.imageSrc} 
+                alt={item.title} 
+                className="w-8 h-8 object-contain mb-2" 
+              />
+              <h4 className="text-[0.8625rem] font-bold tracking-widest text-white uppercase">
+                {item.title}
+              </h4>
+              <p className="text-[0.8625rem] text-white leading-relaxed">
+                {item.description}
+              </p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
