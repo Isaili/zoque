@@ -6,40 +6,51 @@ import { CardLocation } from './CardLocation';
 export function HeroSection() {
   return (
     <section className="relative isolate w-full min-h-screen flex flex-col justify-between pt-32 pb-16 px-6 lg:px-16 overflow-hidden">
-      {/* Fondo con imagen y gradiente oscuro superpuesto */}
+      {/* Fondo con imagen y gradiente suave */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat -z-10"
-        style={{ backgroundImage: `url('/images/hero-bg.jpg')` }}
+        style={{ backgroundImage: `url('/images/image.jpg')` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/30 via-slate-950/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/40 via-slate-950/20 to-transparent" />
       </div>
 
       {/* Contenido Principal */}
       <div className="max-w-xl space-y-6 text-white my-auto">
-        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold font-serif tracking-tight uppercase leading-[1.1] text-amber-50">
-          Conectamos destinos, <br />
-          <span className="text-amber-100">acercamos historias.</span>
+        {/* Título Principal con Cinzel Decorative y colores originales */}
+        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-serif tracking-wide uppercase leading-[1.12]">
+          <span className="block text-[#F5F2EB]">
+            CONECTAMOS
+          </span>
+          <span className="block text-[#C89D55]">
+            DESTINOS,
+          </span>
+          <span className="block text-[#F5F2EB]">
+            ACERCAMOS
+          </span>
+          <span className="block text-[#C89D55]">
+            HISTORIAS.
+          </span>
         </h2>
 
         {/* Subtítulo con ubicación */}
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-amber-400 font-semibold text-sm tracking-wider uppercase">
+          <div className="flex items-center gap-2 text-[#C89D55] font-semibold text-sm tracking-widest uppercase">
             <MapPin className="w-4 h-4" />
             <span>COPAINALÁ, CHIAPAS</span>
           </div>
-          <p className="text-amber-100/80 text-sm italic">
+          <p className="text-amber-100/80 text-sm italic font-serif">
             Orgullosamente Zoques, llevándote siempre a tu destino.
           </p>
         </div>
 
-        {/* Propuestas de Valor (Seguridad, Confort, Puntualidad) */}
+        {/* Propuestas de Valor */}
         <ValueProps />
 
         {/* Botones de Acción */}
         <div className="flex flex-wrap items-center gap-4 pt-4">
           <Link
             href="#destinos"
-            className="flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-6 py-3 rounded-full text-xs tracking-wider uppercase transition-all shadow-lg hover:shadow-amber-400/20"
+            className="flex items-center gap-2 bg-[#C89D55] hover:bg-[#b08745] text-slate-950 font-bold px-6 py-3 rounded-full text-xs tracking-wider uppercase transition-all shadow-lg hover:shadow-amber-400/20"
           >
             <Bus className="w-4 h-4" />
             Ver Destinos
