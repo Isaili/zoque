@@ -24,12 +24,12 @@ export function ValueProps() {
       {features.map((item, index) => {
         const Icon = item.icon;
         return (
-          <div key={index} className="flex flex-col gap-1 text-white">
-            <Icon className="w-6 h-6 text-amber-400 mb-1" />
-            <h4 className="text-xs font-bold tracking-widest text-white uppercase">
+          <div key={index} className="flex flex-col items-center gap-1 text-white text-center">
+            <Icon className="w-[1.725rem] h-[1.725rem] text-amber-400 mb-1" />
+            <h4 className="text-[0.8625rem] font-bold tracking-widest text-white uppercase">
               {item.title}
             </h4>
-            <p className="text-xs text-white leading-relaxed">
+            <p className="text-[0.8625rem] text-white leading-relaxed">
               {item.description}
             </p>
           </div>

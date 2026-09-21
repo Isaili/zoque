@@ -10,7 +10,7 @@ export function Navbar() {
           <Bus className="w-8 h-8 text-amber-400" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-widest leading-none font-serif text-white">
+          <h1 className="text-[1.725rem] font-bold tracking-widest leading-none font-serif text-white">
             ZOQUE
           </h1>
           <span className="text-[10px] tracking-widest text-amber-200/80 uppercase block">
@@ -20,7 +20,7 @@ export function Navbar() {
       </div>
 
       {/* Menú de navegación */}
-      <nav className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wider text-amber-100/90">
+      <nav className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wider text-white">
         <Link href="#inicio" className="hover:text-amber-400 transition-colors border-b-2 border-amber-400 pb-1">
           INICIO
         </Link>
