@@ -26,10 +26,10 @@ export function ValueProps() {
         return (
           <div key={index} className="flex flex-col gap-1 text-white">
             <Icon className="w-6 h-6 text-amber-400 mb-1" />
-            <h4 className="text-xs font-bold tracking-widest text-amber-100 uppercase">
+            <h4 className="text-xs font-bold tracking-widest text-white uppercase">
               {item.title}
             </h4>
-            <p className="text-xs text-amber-100/70 leading-relaxed">
+            <p className="text-xs text-white leading-relaxed">
               {item.description}
             </p>
           </div>

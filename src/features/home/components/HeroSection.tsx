@@ -16,8 +16,8 @@ export function HeroSection() {
 
       {/* Contenido Principal */}
       <div className="max-w-xl space-y-6 text-white my-auto">
-        {/* Título Principal con Cinzel Decorative y colores originales */}
-        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-serif tracking-wide uppercase leading-[1.12]">
+        {/* Título Principal con Merriweather Regular Italic */}
+        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-normal italic font-merriweather tracking-wide uppercase leading-[1.12]">
           <span className="block text-[#F5F2EB]">
             CONECTAMOS
           </span>
@@ -34,12 +34,13 @@ export function HeroSection() {
 
         {/* Subtítulo con ubicación */}
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-[#C89D55] font-semibold text-sm tracking-widest uppercase">
-            <MapPin className="w-4 h-4" />
+          <div className="flex items-center gap-2 text-white font-semibold text-[0.9625rem] tracking-widest uppercase">
+            <MapPin className="w-[1.1rem] h-[1.1rem]" />
             <span>COPAINALÁ, CHIAPAS</span>
           </div>
-          <p className="text-amber-100/80 text-sm italic font-serif">
-            Orgullosamente Zoques, llevándote siempre a tu destino.
+          <p className="text-white text-base italic font-sans font-normal">
+            Orgullosamente Zoques, llevándote <br />
+            siempre a tu destino.
           </p>
         </div>
 

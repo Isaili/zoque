@@ -10,7 +10,7 @@ export function Navbar() {
           <Bus className="w-8 h-8 text-amber-400" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-widest leading-none font-serif text-amber-100">
+          <h1 className="text-2xl font-bold tracking-widest leading-none font-serif text-white">
             ZOQUE
           </h1>
           <span className="text-[10px] tracking-widest text-amber-200/80 uppercase block">
