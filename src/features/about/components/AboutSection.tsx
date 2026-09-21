@@ -3,7 +3,7 @@ import { ShieldCheck, UserCheck, Award } from 'lucide-react';
 
 export const AboutSection = () => {
   return (
-    <section className="w-full bg-white py-0">
+    <section id="nosotros" className="w-full bg-white py-0">
       <div className="max-w-[1480px] mx-auto grid grid-cols-1 lg:grid-cols-[0.98fr_1.02fr] gap-6 lg:gap-0 items-stretch">
         <div className="flex flex-col justify-center py-12 lg:py-16 px-4 sm:px-6 lg:pl-10 lg:pr-6">
           <div className="mb-10 lg:ml-8 lg:-mt-1">
@@ -18,7 +18,7 @@ export const AboutSection = () => {
           </p>
 
           <div className="grid grid-cols-3 gap-4 max-w-[540px] mb-8 mt-6 lg:mt-8">
-            <div className="flex flex-col items-center text-center gap-3">
+            <div className="flex flex-col items-center text-center gap-0">
               <div className="w-16 h-16 flex items-center justify-center bg-transparent overflow-hidden">
                 <Image
                   src="/icons/AboutSegure.png"
@@ -33,18 +33,30 @@ export const AboutSection = () => {
               </span>
             </div>
 
-            <div className="flex flex-col items-center text-center gap-3">
-              <div className="w-16 h-16 flex items-center justify-center bg-transparent">
-                <UserCheck className="w-9 h-9 text-[#0d3b2d]" />
+            <div className="flex flex-col items-center text-center gap-0">
+              <div className="w-16 h-16 flex items-center justify-center bg-transparent overflow-hidden">
+                <Image
+                  src="/icons/atention1.png"
+                  alt="Atención"
+                  width={42}
+                  height={42}
+                  className="object-contain"
+                />
               </div>
               <span className="text-[#1d1d1d] text-sm sm:text-base leading-tight font-medium">
                 Atención <br /> personalizada
               </span>
             </div>
 
-            <div className="flex flex-col items-center text-center gap-3">
-              <div className="w-16 h-16 flex items-center justify-center bg-transparent">
-                <Award className="w-9 h-9 text-[#0d3b2d]" />
+            <div className="flex flex-col items-center text-center gap-0">
+              <div className="w-16 h-16 flex items-center justify-center bg-transparent overflow-hidden">
+                <Image
+                  src="/icons/compromise1.png"
+                  alt="Compromiso"
+                  width={42}
+                  height={42}
+                  className="object-contain"
+                />
               </div>
               <span className="text-[#1d1d1d] text-sm sm:text-base leading-tight font-medium">
                 Compromiso <br /> con Chiapas
