@@ -38,7 +38,7 @@ export function ValueProps() {
               <img 
                 src={item.imageSrc} 
                 alt={item.title} 
-                className="w-8 h-8 object-contain mb-2" 
+                className="w-7 h-7 object-contain mb-2" 
               />
               <h4 className="text-[0.8625rem] font-bold tracking-widest text-white uppercase">
                 {item.title}
