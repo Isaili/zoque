@@ -9,7 +9,7 @@ export function HeroSection() {
       {/* Fondo con imagen y gradiente suave */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat -z-10"
-        style={{ backgroundImage: `url('/images/image.jpg')` }}
+        style={{ backgroundImage: `url('/images/image.png')` }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/40 via-slate-950/20 to-transparent" />
       </div>
