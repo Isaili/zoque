@@ -5,13 +5,13 @@ import { CardLocation } from './CardLocation';
 
 export function HeroSection() {
   return (
-    <section className="relative w-full min-h-screen flex flex-col justify-between pt-32 pb-16 px-6 lg:px-16 overflow-hidden">
+    <section className="relative isolate w-full min-h-screen flex flex-col justify-between pt-32 pb-16 px-6 lg:px-16 overflow-hidden">
       {/* Fondo con imagen y gradiente oscuro superpuesto */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat -z-10"
         style={{ backgroundImage: `url('/images/hero-bg.jpg')` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/30 via-slate-950/30 to-transparent" />
       </div>
 
       {/* Contenido Principal */}
