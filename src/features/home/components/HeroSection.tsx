@@ -5,7 +5,7 @@ import { CardLocation } from './CardLocation';
 
 export function HeroSection() {
   return (
-    <section className="relative isolate w-full min-h-screen flex flex-col justify-between pt-32 pb-16 px-6 lg:px-16 overflow-hidden">
+    <section className="relative isolate w-full min-h-screen flex flex-col justify-between pt-24 pb-10 px-4 sm:px-6 md:px-10 lg:px-16 overflow-hidden">
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat -z-10"
         style={{ backgroundImage: `url('/images/hero-bg.jpg')` }}
@@ -13,10 +13,8 @@ export function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/40 via-slate-950/20 to-transparent" />
       </div>
 
-   
-      <div className="max-w-xl space-y-6 text-white my-auto">
-        
-        <h2 className="text-4xl sm:text-5xl lg:text-6xl font-normal italic font-merriweather tracking-wide uppercase leading-[1.12]">
+      <div className="max-w-full sm:max-w-xl space-y-5 sm:space-y-6 text-white my-auto pt-10 sm:pt-12 lg:pt-0">
+        <h2 className="text-[2.25rem] sm:text-4xl md:text-5xl lg:text-6xl font-normal italic font-merriweather tracking-wide uppercase leading-[1.08] sm:leading-[1.12]">
           <span className="block text-[#F5F2EB]">
             CONECTAMOS
           </span>
@@ -32,24 +30,23 @@ export function HeroSection() {
         </h2>
 
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-white font-semibold text-[0.9625rem] tracking-widest uppercase">
-            <MapPin className="w-[1.1rem] h-[1.1rem] text-[#C89D55]" />
+          <div className="flex items-center gap-2 text-white font-semibold text-[0.75rem] sm:text-[0.9rem] tracking-widest uppercase">
+            <MapPin className="w-[1rem] h-[1rem] sm:w-[1.1rem] sm:h-[1.1rem] text-[#C89D55]" />
             <span>COPAINALÁ, CHIAPAS</span>
           </div>
-          <p className="text-white text-base italic font-sans font-normal">
-            Orgullosamente Zoques, llevándote <br />
+          <p className="text-white text-sm sm:text-base italic font-sans font-normal">
+            Orgullosamente Zoques, llevándote <br className="hidden sm:block" />
             siempre a tu destino.
           </p>
         </div>
 
         <ValueProps />
 
-        <div className="flex flex-wrap items-center gap-4 pt-4">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 pt-2 sm:pt-4">
           <Link
             href="#destinos"
-            className="flex items-center gap-2 bg-[#C89D55] hover:bg-[#b08745] text-slate-950 font-bold px-6 py-3 rounded-full text-xs tracking-wider uppercase transition-all shadow-lg hover:shadow-amber-400/20"
+            className="flex items-center justify-center gap-2 bg-[#C89D55] hover:bg-[#b08745] text-slate-950 font-bold px-5 py-3 rounded-full text-[0.7rem] sm:text-xs tracking-wider uppercase transition-all shadow-lg hover:shadow-amber-400/20"
           >
-         
             <svg 
               className="w-4 h-4 fill-slate-950" 
               viewBox="0 0 24 24" 
@@ -63,7 +60,7 @@ export function HeroSection() {
           <Link
             href="https://wa.me/9611077541"
             target="_blank"
-            className="flex items-center gap-2 bg-slate-900/70 hover:bg-slate-900 text-white font-semibold px-6 py-3 rounded-full text-xs tracking-wider uppercase border border-amber-200/30 backdrop-blur-xs transition-all"
+            className="flex items-center justify-center gap-2 bg-slate-900/70 hover:bg-slate-900 text-white font-semibold px-5 py-3 rounded-full text-[0.7rem] sm:text-xs tracking-wider uppercase border border-amber-200/30 backdrop-blur-xs transition-all"
           >
             <svg 
               className="w-4 h-4 fill-emerald-400" 
@@ -77,7 +74,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      <div className="absolute bottom-16 right-6 lg:right-16 z-10">
+      <div className="absolute bottom-10 right-4 sm:bottom-16 sm:right-6 lg:right-16 z-10">
         <CardLocation />
       </div>
     </section>
