@@ -30,11 +30,11 @@ const features: Feature[] = [
 
 export function ValueProps() {
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 max-w-2xl">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 pt-4 sm:pt-6 border-t border-amber-200/20">
+    <div className="flex flex-col gap-4 sm:gap-6 max-w-2xl mt-8 sm:mt-0">
+      <div className="grid grid-cols-3 gap-2 sm:gap-6 pt-4 sm:pt-6 border-t border-amber-200/20">
         {features.map((item, index) => {
           return (
-            <div key={index} className="flex flex-col items-center gap-1 text-white text-center">
+            <div key={index} className="min-w-0 flex flex-col items-center gap-1 text-white text-center">
               <img 
                 src={item.imageSrc} 
                 alt={item.title} 

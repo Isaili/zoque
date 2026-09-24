@@ -1,33 +1,9 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { CalendarClock, Clock, Landmark, MapPin } from 'lucide-react';
-
-type DestinationTag = 'origin' | 'next' | 'capital';
-
-interface Destination {
-  id: string;
-  name: string;
-  duration: string;
-  price: string;
-  image: string;
-  tag?: DestinationTag;
-}
-
-const DESTINATIONS: Destination[] = [
-  { id: '1', name: 'Copainala', duration: '1h 15m', price: '$90', image: '/images/copainala.png', tag: 'origin' },
-  { id: '2', name: 'Tuxtla Gutiérrez', duration: '1h 50 min', price: '$90', image: '/images/tuxtla.png', tag: 'capital' },
-  { id: '3', name: 'Tecpatán', duration: '45 min', price: '$60', image: '/images/tecpatan.png' },
-  { id: '4', name: 'Coapilla', duration: '1h', price: '$70', image: '/images/coapilla.png' },
-  { id: '5', name: 'San Fernando', duration: '1h 20m', price: '$110', image: '/images/piramides.png' },
-  { id: '6', name: 'Quechula', duration: '2h', price: '$150', image: '/images/quechulaundida.png' },
-  { id: '7', name: 'Ocotepec', duration: '50 min', price: '$60', image: '/images/ocotepec.png' },
-  { id: '8', name: 'Raudales Malpaso', duration: '1h 30m', price: '$120', image: '/images/raudales.png' },
-  { id: '9', name: 'Ostuacan', duration: '1h 30m', price: '$120', image: '/images/ostuacan.png' },
-  { id: '10', name: 'PH CFE chicoasen', duration: '1h 10m', price: '$90', image: '/images/cfe.png' },
-  { id: '11', name: 'San Cristóbal', duration: '2h', price: '$150', image: '/images/sdc.png', tag: 'next' },
-];
+import { DestinationCard } from './DestinationCard';
+import { DestinationLegend } from './DestinationLegend';
+import { DESTINATIONS, LOOP_ITEMS } from './destinationsData';
 
 const COUNT = DESTINATIONS.length;
 const WHEEL_SPEED = 1.2; // multiplicador del scroll del mouse (más alto = avanza más rápido)
@@ -37,10 +13,6 @@ const IDLE_MS = 2500; // tiempo sin tocar el carrusel antes de que retome el ava
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 /* Tres copias de la lista: al terminar San Cristóbal vuelve a empezar Copainala (y al revés) */
-const LOOP_ITEMS = [0, 1, 2].flatMap((copy) =>
-  DESTINATIONS.map((destination) => ({ ...destination, copy, key: `${copy}-${destination.id}` })),
-);
-
 export const DestinationsSection = () => {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -237,28 +209,7 @@ export const DestinationsSection = () => {
             </button>
           </div>
 
-          {/* Leyenda de los distintivos */}
-          <ul className="space-y-2 text-xs text-gray-600">
-            <li className="flex items-center gap-2">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#0D3B23] text-white">
-                <MapPin className="h-3 w-3" aria-hidden />
-              </span>
-              Ciudad de origen: de aquí salimos
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sky-700 text-white">
-                <Landmark className="h-3 w-3" aria-hidden />
-              </span>
-              Capital del estado
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-amber-950">
-                <CalendarClock className="h-3 w-3" aria-hidden />
-              </span>
-              Próxima corrida programada
-            </li>
-          </ul>
-          <p className="text-xs text-gray-500">Precios en pesos mexicanos (MXN).</p>
+          <DestinationLegend />
         </div>
 
         {/* Columna Derecha: Contenedor con Scroll Horizontal infinito */}
@@ -269,85 +220,14 @@ export const DestinationsSection = () => {
           {/* `relative` es clave: hace que offsetLeft de las tarjetas se mida desde el inicio del carrusel */}
           <div className="relative flex gap-4 min-w-max">
             {LOOP_ITEMS.map((destination, index) => {
-              const isOrigin = destination.tag === 'origin';
-              const isNext = destination.tag === 'next';
-              const isCapital = destination.tag === 'capital';
-
               return (
-                <div
+                <DestinationCard
                   key={destination.key}
-                  aria-hidden={destination.copy !== 1}
-                  ref={(el) => {
+                  destination={destination}
+                  cardRef={(el) => {
                     cardRefs.current[index] = el;
                   }}
-                  /* Ancho de 52 Tailwind units (13rem) y tarjetas con mayor presencia general */
-                  className={`w-52 bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col justify-between flex-shrink-0 ${
-                    isOrigin
-                      ? 'border-2 border-[#2A4822]'
-                      : isNext
-                      ? 'border-2 border-dashed border-amber-400'
-                      : 'border border-gray-200/80'
-                  }`}
-                >
-                  {/* Imagen más alta (h-48) */}
-                  <div className="relative w-full h-48 bg-gray-200">
-                    <Image
-                      src={destination.image}
-                      alt={destination.name}
-                      fill
-                      draggable={false}
-                      className="object-cover pointer-events-none"
-                    />
-
-                    {isOrigin && (
-                      <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-[#0D3B23] px-2.5 py-1 text-[11px] font-semibold text-white shadow">
-                        <MapPin className="h-3 w-3" aria-hidden />
-                        Ciudad de origen
-                      </span>
-                    )}
-
-                    {isCapital && (
-                      <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-sky-700 px-2.5 py-1 text-[11px] font-semibold text-white shadow">
-                        <Landmark className="h-3 w-3" aria-hidden />
-                        Capital del estado
-                      </span>
-                    )}
-
-                    {isNext && (
-                      <span className="absolute top-2 left-2 inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-semibold text-amber-950 shadow">
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-900/60 motion-reduce:animate-none" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-900" />
-                        </span>
-                        Próxima corrida
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Contenido de la Tarjeta */}
-                  <div className="p-3.5 flex flex-col justify-between flex-grow">
-                    <h3 className="font-bold text-gray-800 text-sm mb-3 line-clamp-1">
-                      {destination.name}
-                    </h3>
-
-                    <div className="flex items-center justify-between text-xs text-gray-500 pt-2.5 border-t border-gray-100">
-                      <div className="flex items-center space-x-1">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" />
-                        <span>{destination.duration}</span>
-                      </div>
-                      <div className="font-medium text-gray-700">
-                        <span className="text-[10px] text-gray-400 mr-1">Desde</span>
-                        <span className="font-bold text-gray-900">{destination.price}</span>
-                        <abbr
-                          title="Pesos mexicanos"
-                          className="ml-0.5 text-[10px] font-medium text-gray-400 no-underline"
-                        >
-                          MXN
-                        </abbr>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                />
               );
             })}
           </div>
