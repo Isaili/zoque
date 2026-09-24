@@ -1,4 +1,4 @@
-import { Navbar, HeroSection, FooterBanner, AboutSection, DestinationsSection } from '@/features/home';
+import { Navbar, HeroSection, FooterBanner, AboutSection, DestinationsSection, SchedulesSection } from '@/features/home';
 
 export default function HomePage() {
   return (
@@ -8,6 +8,7 @@ export default function HomePage() {
       <FooterBanner />
       <AboutSection />
       <DestinationsSection />
+      <SchedulesSection />
 
     </main>
   );

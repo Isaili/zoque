@@ -14,7 +14,7 @@ export function HeroSection() {
       </div>
 
       <div className="max-w-full sm:max-w-xl space-y-5 sm:space-y-6 text-white my-auto pt-10 sm:pt-12 lg:pt-0">
-        <h2 className="text-[2.25rem] sm:text-4xl md:text-5xl lg:text-6xl font-normal italic font-merriweather tracking-wide uppercase leading-[1.08] sm:leading-[1.12]">
+        <h2 className="text-[2.25rem] sm:text-4xl md:text-5xl lg:text-6xl italic font-merriweather tracking-[-0.06em] uppercase leading-[0.85]">
           <span className="block text-[#F5F2EB]">
             CONECTAMOS
           </span>
