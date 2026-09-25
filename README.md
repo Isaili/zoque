@@ -58,7 +58,7 @@ Landing page oficial de **Auto Transportes Zoque**, empresa de transporte forán
 ## 📦 Instalación
 
 ```bash
-git clone <url-del-repositorio>
+git clone <https://github.com/Isaili/zoque.git>
 cd auto-transportes-zoque
 npm install
 ```
