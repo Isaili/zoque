@@ -13,117 +13,11 @@ import {
   Luggage,
   Route
 } from 'lucide-react';
-
-interface RouteItem {
-  id: string;
-  from: string;
-  to: string;
-  state: string;
-  originStation: string;
-  departures: string[];
-  frequency: string;
-  frequencyType: 'diaria' | 'habiles' | 'sabado'; // diaria=verde, habiles(L-V)=índigo, sabado(L-S)=azul
-  duration: string;
-  price: number;
-  available: boolean;
-}
-
-const ALL_ROUTES: RouteItem[] = [
-  {
-    id: '1',
-    from: 'Copainalá',
-    to: 'Tuxtla Gutiérrez',
-    state: 'Chiapas, México',
-    originStation: 'Copainalá',
-    departures: ['04:00', '04:30', '05:00', '...cada 30 min hasta 19:00'],
-    frequency: 'Diaria',
-    frequencyType: 'diaria',
-    duration: '1 h 30 min',
-    price: 90,
-    available: true,
-  },
-  {
-    id: '2',
-    from: 'Coapilla',
-    to: 'Tuxtla Gutiérrez',
-    state: 'Chiapas, México',
-    originStation: 'Coapilla (Pasa 7:00 AM en Copainalá)',
-    departures: ['05:00'],
-    frequency: 'Diaria (1 corrida)',
-    frequencyType: 'diaria',
-    duration: '3 h 30 min',
-    price: 160,
-    available: true,
-  },
-  {
-    id: '3',
-    from: 'Ocotepec',
-    to: 'Tuxtla Gutiérrez',
-    state: 'Chiapas, México',
-    originStation: 'Ocotepec (Pasa Coapilla y Copainalá)',
-    departures: ['05:00'],
-    frequency: 'Diaria (Regreso 14:00)',
-    frequencyType: 'diaria',
-    duration: '4 h 00 min',
-    price: 200,
-    available: true,
-  },
-  {
-    id: '4',
-    from: 'Tecpatán',
-    to: 'Tuxtla Gutiérrez',
-    state: 'Chiapas, México',
-    originStation: 'Tecpatán (Pasa 5:00 AM Copainalá)',
-    departures: ['04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
-    frequency: 'Diaria (Cada 2h)',
-    frequencyType: 'diaria',
-    duration: '3 h 00 min',
-    price: 120,
-    available: true,
-  },
-  {
-    id: '5',
-    from: 'Raudales Malpaso',
-    to: 'Tuxtla Gutiérrez',
-    state: 'Chiapas, México',
-    originStation: 'Raudales Malpaso',
-    departures: ['04:00', '04:30', '...cada 30 min hasta 18:30'],
-    frequency: 'Diaria',
-    frequencyType: 'diaria',
-    duration: '2 h 00 min',
-    price: 120,
-    available: true,
-  },
-  {
-    id: '6',
-    from: 'Ostuacán',
-    to: 'Tuxtla Gutiérrez',
-    state: 'Chiapas, México',
-    originStation: 'Ostuacán',
-    departures: ['04:00', '11:00', '16:00'],
-    frequency: 'Diaria (3 corridas)',
-    frequencyType: 'diaria',
-    duration: '3 h 00 min',
-    price: 210,
-    available: true,
-  },
-  {
-    id: '7',
-    from: 'Tecpatán',
-    to: 'Raudales Malpaso',
-    state: 'Chiapas, México',
-    originStation: 'Tecpatán',
-    departures: ['05:00', '06:00', '...cada 1h hasta 16:00'],
-    frequency: 'Diaria (Cada 1h)',
-    frequencyType: 'diaria',
-    duration: '1 h 00 min',
-    price: 60,
-    available: true,
-  },
-];
+import { DeparturesBoard } from './DeparturesBoard';
+import { ALL_ROUTES, departuresSummary, formatDuration, type FrequencyType } from './schedulesData';
 
 // 3 colores de frecuencia, igual que en el diseño: Diaria (verde), Lunes a Viernes (índigo), Lunes a Sábado (azul)
-const FREQUENCY_STYLES: Record<RouteItem['frequencyType'], string> = {
+const FREQUENCY_STYLES: Record<FrequencyType, string> = {
   diaria: 'bg-emerald-100 text-emerald-800',
   habiles: 'bg-violet-100 text-violet-700',
   sabado: 'bg-sky-100 text-sky-700',
@@ -250,6 +144,9 @@ export function HorariosSection() {
           </div>
         </div>
 
+        {/* TABLERO DE PRÓXIMAS SALIDAS (CORRIDA POR CORRIDA) */}
+        <DeparturesBoard routes={filteredRoutes} selectedDate={selectedDate} />
+
         {/* TABLA DE HORARIOS Y RUTAS */}
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden">
           <div className="overflow-x-auto">
@@ -296,7 +193,7 @@ export function HorariosSection() {
                       {/* Salida: texto compacto separado por "·" en vez de pills que se envuelven */}
                       <td className="py-4 px-4 font-bold text-slate-900">
                         <span className="leading-relaxed block max-w-[190px]">
-                          {route.departures.join(' · ')}
+                          {departuresSummary(route.schedule)}
                         </span>
                       </td>
 
@@ -311,7 +208,7 @@ export function HorariosSection() {
                       <td className="py-4 px-4 font-medium text-slate-600 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          {route.duration}
+                          {formatDuration(route.durationMin)}
                         </div>
                       </td>
 
