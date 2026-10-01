@@ -9,4 +9,5 @@ export { WhyUsSection } from '../why-us';
 export { FleetSection } from '../fleet';
 export { HowToBuySection } from '../how-to-buy';
 export { TestimonialsSection } from '../testimonials';
+export { CoverageSection } from '../coverage';
 // ... las demás exportaciones
