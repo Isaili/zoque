@@ -7,4 +7,5 @@ export { SchedulesSection } from '../schedules/components/SchedulesSection';
 export { HorariosSection } from '../schedules/components/HorariosSection';
 export { WhyUsSection } from '../why-us';
 export { FleetSection } from '../fleet';
+export { HowToBuySection } from '../how-to-buy';
 // ... las demás exportaciones
