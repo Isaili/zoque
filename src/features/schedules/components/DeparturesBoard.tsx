@@ -80,7 +80,7 @@ export function DeparturesBoard({ routes, selectedDate }: DeparturesBoardProps) 
       </div>
 
       {/* Encabezado de columnas (escritorio) */}
-      <div className="hidden md:grid grid-cols-[90px_minmax(0,2fr)_minmax(0,1.6fr)_90px_90px_130px] gap-4 px-6 py-3 bg-slate-50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+      <div className="hidden md:grid grid-cols-[90px_minmax(0,2fr)_minmax(0,1.6fr)_90px_90px_130px] gap-4 px-6 pt-5 pb-3 text-[10px] md:text-[11px] font-semibold uppercase tracking-wide text-gray-800">
         <span>Salida</span>
         <span>Ruta</span>
         <span>Origen</span>
@@ -91,7 +91,7 @@ export function DeparturesBoard({ routes, selectedDate }: DeparturesBoardProps) 
 
       {/* Lista de corridas */}
       {visible.length > 0 ? (
-        <ol className="divide-y divide-slate-100">
+        <ol className="text-xs md:text-sm text-gray-700">
           {visible.map((departure) => {
             const { route } = departure;
             const status = STATUS_STYLES[statusOf(departure)];
@@ -100,59 +100,63 @@ export function DeparturesBoard({ routes, selectedDate }: DeparturesBoardProps) 
             return (
               <li
                 key={departure.key}
-                className="grid grid-cols-[72px_minmax(0,1fr)_auto] md:grid-cols-[90px_minmax(0,2fr)_minmax(0,1.6fr)_90px_90px_130px] gap-x-4 gap-y-1 items-center px-5 md:px-6 py-3.5 hover:bg-slate-50/80 transition-colors"
+                className="grid grid-cols-[72px_minmax(0,1fr)_auto] md:grid-cols-[90px_minmax(0,2fr)_minmax(0,1.6fr)_90px_90px_130px] gap-x-4 gap-y-1 items-center border-t border-gray-100 px-5 md:px-6 py-3.5 hover:bg-gray-50/70 transition-colors"
               >
                 {/* Hora de salida */}
                 <div className="row-span-2 md:row-span-1">
-                  <span className="block font-mono text-xl md:text-2xl font-extrabold text-slate-900 tabular-nums">
+                  <span className="block whitespace-nowrap tabular-nums">
                     {formatTime(departure.time)}
                   </span>
                   {isToday && minutesLeft < 60 && (
-                    <span className="block text-[11px] font-semibold text-amber-700">
+                    <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-[#2A4822]">
+                      <Clock className="h-3 w-3" />
                       {minutesLeft <= 0 ? 'Saliendo' : `en ${minutesLeft} min`}
                     </span>
                   )}
                 </div>
 
                 {/* Ruta */}
-                <div className="min-w-0 font-bold text-sm text-slate-900">
+                <div className="min-w-0 font-normal">
                   <span className="inline-flex flex-wrap items-center gap-x-1.5">
                     {route.from}
-                    <ArrowRight className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                    <ArrowRight className="h-3.5 w-3.5 text-gray-400 shrink-0" />
                     {route.to}
                   </span>
                 </div>
 
                 {/* Estado (móvil a la derecha, escritorio en su columna) */}
                 <div className="md:order-last md:text-center">
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${status.className}`}>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium whitespace-nowrap ${status.className}`}>
                     <span className={`w-2 h-2 rounded-full ${status.dot}`} />
                     {status.label}
                   </span>
                 </div>
 
                 {/* Origen */}
-                <div className="col-start-2 col-span-2 md:col-span-1 md:col-start-auto min-w-0 flex flex-wrap items-start gap-x-1.5 text-xs text-slate-500 md:text-sm md:text-slate-700 md:font-semibold">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                <div className="col-start-2 col-span-2 md:col-span-1 md:col-start-auto min-w-0 flex flex-wrap items-start gap-x-1.5 text-[11px] font-medium text-[#2A4822] md:text-sm md:font-normal md:text-gray-500">
+                  <MapPin className="h-3 w-3 shrink-0 mt-0.5 md:h-3.5 md:w-3.5" />
                   <span className="leading-snug min-w-0 flex-1">{route.originStation}</span>
-                  <span className="md:hidden basis-full pl-5 text-slate-400">
+                  <span className="md:hidden basis-full pl-[18px] text-gray-500 font-normal">
                     Llega {formatTime(departure.time + route.durationMin)} · ${route.price}
                   </span>
                 </div>
 
                 {/* Llegada y precio (escritorio) */}
-                <span className="hidden md:block text-sm font-medium text-slate-600 tabular-nums">
+                <span className="hidden md:block whitespace-nowrap tabular-nums">
                   {formatTime(departure.time + route.durationMin)}
                 </span>
-                <span className="hidden md:block text-sm font-extrabold text-slate-900 whitespace-nowrap">
-                  ${route.price} <span className="text-[10px] font-normal text-slate-400">MXN</span>
+                <span className="hidden md:block whitespace-nowrap font-bold text-gray-900">
+                  ${route.price}
+                  <abbr title="Pesos mexicanos" className="ml-0.5 text-[10px] font-medium text-gray-400 no-underline">
+                    MXN
+                  </abbr>
                 </span>
               </li>
             );
           })}
         </ol>
       ) : (
-        <p className="text-center py-12 px-4 text-slate-400 font-medium">
+        <p className="text-center py-12 px-4 text-xs md:text-sm text-gray-500">
           {allDepartures.length > 0
             ? `Ya no hay corridas por hoy. La primera salida de mañana es a las ${formatTime(allDepartures[0].time)}.`
             : 'No se encontraron corridas con los filtros seleccionados.'}
@@ -164,7 +168,7 @@ export function DeparturesBoard({ routes, selectedDate }: DeparturesBoardProps) 
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
-          className="w-full flex items-center justify-center gap-1.5 py-3 border-t border-slate-100 text-sm font-bold text-emerald-800 hover:bg-emerald-50 transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 py-3 border-t border-gray-100 text-xs font-semibold uppercase tracking-wider text-[#0D3B23] hover:bg-gray-50 transition-colors"
         >
           {expanded ? (
             <>Ver menos <ChevronUp className="w-4 h-4" /></>
