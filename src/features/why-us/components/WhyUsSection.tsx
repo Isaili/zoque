@@ -18,8 +18,8 @@ const BENEFITS: Benefit[] = [
 
 export const WhyUsSection = () => {
   return (
-    <section id="servicios" aria-labelledby="por-que-titulo" className="w-full bg-gray-100 px-4 py-12 sm:px-8 sm:py-16 lg:px-12">
-      <div className="mx-auto max-w-7xl rounded-xl border border-gray-200 bg-gray-50 px-6 py-10 shadow-lg sm:px-10 sm:py-12">
+    <section id="servicios" aria-labelledby="por-que-titulo" className="w-full border-y border-gray-200 bg-gray-100">
+      <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
         <h2
           id="por-que-titulo"
           className="text-2xl font-extrabold uppercase leading-tight tracking-tight text-[#0D3B23] sm:text-3xl md:text-4xl"

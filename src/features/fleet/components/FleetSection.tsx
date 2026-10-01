@@ -23,7 +23,7 @@ export const FleetSection = () => {
     <section id="flota" aria-labelledby="flota-titulo" className="w-full bg-white">
       <div className="grid w-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
         {/* Texto */}
-        <div className="flex flex-col justify-center px-6 py-12 sm:px-10 sm:py-16 lg:pl-[max(3rem,calc((100vw-80rem)/2+2.5rem))]">
+        <div className="flex flex-col justify-center px-6 py-12 sm:px-10 sm:py-16 lg:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
           <p className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wide text-[#2A4822]">
             Nuestra flotilla
           </p>
