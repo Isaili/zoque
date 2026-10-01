@@ -2,25 +2,24 @@
 
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { 
-  MapPin, 
-  Calendar, 
-  Search, 
-  Clock, 
-  DollarSign, 
-  ShieldCheck, 
-  CreditCard, 
+import {
+  ArrowRight,
+  MapPin,
+  Calendar,
+  Search,
+  Clock,
+  ShieldCheck,
+  CreditCard,
   Luggage,
-  Route
 } from 'lucide-react';
 import { DeparturesBoard } from './DeparturesBoard';
-import { ALL_ROUTES, departuresSummary, formatDuration, type FrequencyType } from './schedulesData';
+import { ALL_ROUTES, departureTimes, formatDuration, formatTime12, type FrequencyType } from './schedulesData';
 
-// 3 colores de frecuencia, igual que en el diseño: Diaria (verde), Lunes a Viernes (índigo), Lunes a Sábado (azul)
-const FREQUENCY_STYLES: Record<FrequencyType, string> = {
-  diaria: 'bg-emerald-100 text-emerald-800',
-  habiles: 'bg-violet-100 text-violet-700',
-  sabado: 'bg-sky-100 text-sky-700',
+// 3 colores de frecuencia: Diaria (verde), Lunes a Viernes (índigo), Lunes a Sábado (azul)
+const FREQUENCY_DOTS: Record<FrequencyType, string> = {
+  diaria: 'bg-emerald-600',
+  habiles: 'bg-violet-500',
+  sabado: 'bg-sky-500',
 };
 
 export function HorariosSection() {
@@ -147,96 +146,83 @@ export function HorariosSection() {
         {/* TABLERO DE PRÓXIMAS SALIDAS (CORRIDA POR CORRIDA) */}
         <DeparturesBoard routes={filteredRoutes} selectedDate={selectedDate} />
 
-        {/* TABLA DE HORARIOS Y RUTAS */}
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[900px]">
-              {/* Encabezado Verde Oscuro */}
-              <thead>
-                <tr className="bg-[#0D3B23] text-white text-xs font-bold uppercase tracking-wider">
-                  <th className="py-4 px-5"><div className="flex items-center gap-1.5"><Route className="w-4 h-4 text-emerald-400" /> Ruta</div></th>
-                  <th className="py-4 px-4"><div className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-emerald-400" /> Origen</div></th>
-                  <th className="py-4 px-4"><div className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-emerald-400" /> Salida</div></th>
-                  <th className="py-4 px-4"><div className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-emerald-400" /> Frecuencia</div></th>
-                  <th className="py-4 px-4"><div className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-emerald-400" /> Duración viaje</div></th>
-                  <th className="py-4 px-4"><div className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-emerald-400" /> Precio</div></th>
-                  <th className="py-4 px-5 text-center"><div className="flex items-center justify-center gap-1.5"><BusIcon className="w-4 h-4 text-emerald-400" /> Disponibilidad</div></th>
-                </tr>
-              </thead>
-
-              {/* Filas */}
-              <tbody className="divide-y divide-slate-100 text-xs md:text-sm text-slate-700">
-                {filteredRoutes.length > 0 ? (
-                  filteredRoutes.map((route) => (
-                    <tr key={route.id} className="hover:bg-slate-50/80 transition-colors align-top">
-                      {/* Ruta */}
-                      <td className="py-4 px-5 font-bold text-slate-900">
-                        <div className="flex items-start gap-2">
-                          <div className="p-1.5 rounded-full bg-slate-100 text-emerald-800 shrink-0">
-                            <Route className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="leading-snug">{route.from} <span className="text-emerald-700 font-extrabold mx-1">→</span> {route.to}</div>
-                            <span className="text-[11px] font-normal text-slate-400 block mt-0.5">{route.state}</span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Origen */}
-                      <td className="py-4 px-4 font-semibold text-slate-700">
-                        <div className="flex items-start gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                          <span className="leading-snug">{route.originStation}</span>
-                        </div>
-                      </td>
-
-                      {/* Salida: texto compacto separado por "·" en vez de pills que se envuelven */}
-                      <td className="py-4 px-4 font-bold text-slate-900">
-                        <span className="leading-relaxed block max-w-[190px]">
-                          {departuresSummary(route.schedule)}
-                        </span>
-                      </td>
-
-                      {/* Frecuencia */}
-                      <td className="py-4 px-4">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${FREQUENCY_STYLES[route.frequencyType]}`}>
-                          {route.frequency}
-                        </span>
-                      </td>
-
-                      {/* Duración */}
-                      <td className="py-4 px-4 font-medium text-slate-600 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          {formatDuration(route.durationMin)}
-                        </div>
-                      </td>
-
-                      {/* Precio */}
-                      <td className="py-4 px-4 font-extrabold text-slate-900 whitespace-nowrap">
-                        ${route.price} <span className="text-[10px] font-normal text-slate-400">MXN</span>
-                      </td>
-
-                      {/* Disponibilidad */}
-                      <td className="py-4 px-5 text-center whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold">
-                          <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                          Disponible
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="text-center py-12 text-slate-400 font-medium">
-                      No se encontraron rutas con los filtros seleccionados.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        {/* TABLA DE RUTAS: misma tipografía que la lista de próximas salidas */}
+        <section aria-labelledby="rutas-titulo" className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+          <div className="bg-[#0D3B23] px-5 py-4 md:px-6">
+            <h2 id="rutas-titulo" className="text-white font-extrabold text-lg md:text-xl tracking-tight">
+              Todas las rutas
+            </h2>
+            <p className="text-emerald-200/80 text-xs font-medium">
+              {filteredRoutes.length} {filteredRoutes.length === 1 ? 'ruta' : 'rutas'} · horario completo del día
+            </p>
           </div>
-        </div>
+
+          {filteredRoutes.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[48rem] text-left text-xs md:text-sm">
+                <thead>
+                  <tr className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wide text-gray-800">
+                    <th scope="col" className="px-5 pt-5 pb-3 font-semibold">Ruta</th>
+                    <th scope="col" className="px-3 pt-5 pb-3 text-center font-semibold">Primera salida</th>
+                    <th scope="col" className="px-3 pt-5 pb-3 text-center font-semibold">Última salida</th>
+                    <th scope="col" className="px-3 pt-5 pb-3 text-center font-semibold">Frecuencia</th>
+                    <th scope="col" className="px-3 pt-5 pb-3 text-center font-semibold">Duración</th>
+                    <th scope="col" className="px-3 pt-5 pb-3 text-center font-semibold">Disponibilidad</th>
+                    <th scope="col" className="px-5 pt-5 pb-3 text-center font-semibold">Precio desde</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRoutes.map((route) => {
+                    const times = departureTimes(route.schedule);
+
+                    return (
+                      <tr key={route.id} className="border-t border-gray-100 text-gray-700 transition-colors hover:bg-gray-50/70">
+                        <th scope="row" className="px-5 py-3.5 font-normal">
+                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                            {route.from}
+                            <span className="inline-flex h-6 w-6 items-center justify-center text-gray-400">
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </span>
+                            {route.to}
+                          </span>
+                          <span className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-[#2A4822]">
+                            <Clock className="h-3 w-3" />
+                            {route.note}
+                          </span>
+                        </th>
+                        <td className="whitespace-nowrap px-3 py-3.5 text-center">{formatTime12(times[0])}</td>
+                        <td className="whitespace-nowrap px-3 py-3.5 text-center">{formatTime12(times[times.length - 1])}</td>
+                        <td className="px-3 py-3.5 text-center text-gray-500">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${FREQUENCY_DOTS[route.frequencyType]}`} />
+                            {route.frequency}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-3.5 text-center text-gray-500">{formatDuration(route.durationMin)}</td>
+                        <td className="whitespace-nowrap px-3 py-3.5 text-center text-gray-500">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className={`h-1.5 w-1.5 rounded-full ${route.available ? 'bg-emerald-600' : 'bg-gray-400'}`} />
+                            {route.available ? 'Disponible' : 'Sin servicio'}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3.5 text-center font-bold text-gray-900">
+                          ${route.price}
+                          <abbr title="Pesos mexicanos" className="ml-0.5 text-[10px] font-medium text-gray-400 no-underline">
+                            MXN
+                          </abbr>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-center py-12 px-4 text-xs md:text-sm text-gray-500">
+              No se encontraron rutas con los filtros seleccionados.
+            </p>
+          )}
+        </section>
 
         {/* PIE DE PÁGINA INFORMATIVO (FOOTER INFERIOR DE LA IMAGEN) */}
         <div className="bg-slate-50/90 rounded-2xl p-6 border border-slate-200/80 grid grid-cols-1 md:grid-cols-4 gap-6 items-center shadow-sm">

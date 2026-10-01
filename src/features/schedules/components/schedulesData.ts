@@ -156,14 +156,6 @@ export const departureTimes = (rule: DepartureRule): number[] => {
   return times;
 };
 
-// Resumen compacto para la tabla: "04:00 · 04:30 · ...cada 30 min hasta 19:00"
-export const departuresSummary = (rule: DepartureRule): string => {
-  const times = departureTimes(rule).map(formatTime);
-  if ('times' in rule) return times.join(' · ');
-  const every = rule.everyMin % 60 === 0 ? `${rule.everyMin / 60}h` : `${rule.everyMin} min`;
-  return `${times.slice(0, 2).join(' · ')} · ...cada ${every} hasta ${rule.last}`;
-};
-
 // Todas las corridas de las rutas dadas, ordenadas por hora de salida
 export const buildDepartures = (routes: RouteItem[]): Departure[] =>
   routes
