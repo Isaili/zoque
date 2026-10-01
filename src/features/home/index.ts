@@ -5,4 +5,5 @@ export { AboutSection } from '../about/components/AboutSection';
 export { DestinationsSection } from '../destinations/components/DestinationsSection';
 export { SchedulesSection } from '../schedules/components/SchedulesSection';
 export { HorariosSection } from '../schedules/components/HorariosSection';
+export { WhyUsSection } from '../why-us';
 // ... las demás exportaciones
