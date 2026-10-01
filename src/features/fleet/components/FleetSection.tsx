@@ -20,10 +20,10 @@ const AMENITIES: Amenity[] = [
 
 export const FleetSection = () => {
   return (
-    <section id="flota" aria-labelledby="flota-titulo" className="w-full bg-gray-100 px-4 pb-12 sm:px-8 sm:pb-16 lg:px-12">
-      <div className="mx-auto grid max-w-7xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
+    <section id="flota" aria-labelledby="flota-titulo" className="w-full bg-white">
+      <div className="grid w-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
         {/* Texto */}
-        <div className="flex flex-col justify-center px-6 py-10 sm:px-10 sm:py-12">
+        <div className="flex flex-col justify-center px-6 py-12 sm:px-10 sm:py-16 lg:pl-[max(3rem,calc((100vw-80rem)/2+2.5rem))]">
           <p className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wide text-[#2A4822]">
             Nuestra flotilla
           </p>
@@ -48,7 +48,7 @@ export const FleetSection = () => {
         </div>
 
         {/* Imagen con amenidades encima */}
-        <div className="relative flex flex-col sm:min-h-[26rem] sm:justify-end lg:min-h-[28rem]">
+        <div className="relative flex flex-col sm:min-h-[28rem] sm:justify-end lg:min-h-[32rem]">
           {/* En móvil la foto va arriba y las amenidades debajo; desde sm se encima la tarjeta */}
           <div className="relative h-56 sm:absolute sm:inset-0 sm:h-auto">
             <Image
