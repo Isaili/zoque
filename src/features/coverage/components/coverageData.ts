@@ -12,12 +12,12 @@ export interface Town {
 
 // Cabeceras municipales (coordenadas verificadas dentro de su municipio con los límites de INEGI)
 export const TOWNS: Town[] = [
-  { name: 'Copainalá', lon: -93.2125, lat: 17.0939, label: { dx: 0, dy: 30, anchor: 'middle' }, hub: true },
-  { name: 'Tuxtla Gutiérrez', lon: -93.1156, lat: 16.7531, label: { dx: 0, dy: 24, anchor: 'middle' } },
+  { name: 'Copainalá', lon: -93.2125, lat: 17.0939, label: { dx: 0, dy: 0, anchor: 'middle' }, hub: true },
+  { name: 'Tuxtla Gutiérrez', lon: -93.1156, lat: 16.7531, label: { dx: 0, dy: 0, anchor: 'middle' } },
   { name: 'Coapilla', lon: -93.1667, lat: 17.1333, label: { dx: 12, dy: 5, anchor: 'start' } },
   { name: 'Ocotepec', lon: -93.1636, lat: 17.2253, label: { dx: 12, dy: 5, anchor: 'start' } },
   { name: 'Tecpatán', lon: -93.3167, lat: 17.1333, label: { dx: -12, dy: 5, anchor: 'end' } },
-  { name: 'Raudales Malpaso', lon: -93.6061, lat: 17.1931, label: { dx: 0, dy: 24, anchor: 'middle' } },
+  { name: 'Raudales Malpaso', lon: -93.6061, lat: 17.1931, label: { dx: 0, dy: 0, anchor: 'middle' } },
   { name: 'Ostuacán', lon: -93.3364, lat: 17.4064, label: { dx: 12, dy: 5, anchor: 'start' } },
 ];
 
@@ -32,6 +32,8 @@ const VIA: Record<string, string[]> = {
   '3': ['Coapilla', 'Copainalá'],
   '4': ['Copainalá'],
   '5': ['Ocozocoautla'],
+  '9': ['Ocozocoautla'],
+  '10': ['Copainalá', 'Coapilla'],
 };
 
 const townByName = new Map(TOWNS.map((town) => [town.name, town]));
@@ -54,32 +56,53 @@ const curveThrough = (points: [number, number][]) =>
     return `${d} Q${cx.toFixed(1)},${cy.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
   }, '');
 
-export interface MapRoute {
-  route: RouteItem;
+export interface MapPath {
+  key: string;
   stops: string[]; // localidades por las que pasa (sin puntos de paso)
   d: string;
+  routes: RouteItem[]; // corridas que usan este camino, en cualquier sentido
+  forward: boolean; // hay corridas en el sentido del trazo
+  backward: boolean; // hay corridas en sentido contrario
 }
 
-// Rutas del mapa generadas a partir de la lista de corridas: si cambia la lista, cambia el mapa
-export const MAP_ROUTES: MapRoute[] = ALL_ROUTES.filter((route) => route.available).flatMap((route) => {
-  const sequence = [route.from, ...(VIA[route.id] ?? []), route.to];
-  const points = sequence.map(pointOf);
-  if (points.some((point) => point === null)) return [];
-  return [
-    {
-      route,
-      stops: sequence.filter((name) => townByName.has(name)),
-      d: curveThrough(points as [number, number][]),
-    },
-  ];
-});
+// Caminos del mapa generados a partir de la lista de corridas: si cambia la lista, cambia el mapa.
+// La ida y el regreso comparten un solo trazo.
+export const MAP_PATHS: MapPath[] = (() => {
+  const paths = new Map<string, MapPath>();
+  for (const route of ALL_ROUTES.filter((r) => r.available)) {
+    const sequence = [route.from, ...(VIA[route.id] ?? []), route.to];
+    if (sequence.some((name) => pointOf(name) === null)) continue;
+    const reversed = [...sequence].reverse();
+    const forward = sequence.join('>') <= reversed.join('>');
+    const canonical = forward ? sequence : reversed;
+    const key = canonical.join('>');
+    const path =
+      paths.get(key) ??
+      {
+        key,
+        stops: canonical.filter((name) => townByName.has(name)),
+        d: curveThrough(canonical.map(pointOf) as [number, number][]),
+        routes: [],
+        forward: false,
+        backward: false,
+      };
+    path.routes.push(route);
+    if (forward) path.forward = true;
+    else path.backward = true;
+    paths.set(key, path);
+  }
+  return [...paths.values()];
+})();
 
 const departures = buildDepartures(ALL_ROUTES);
 
 export const runsFrom = (town: string) => departures.filter((d) => d.route.from === town).length;
 
+export const runsOn = (path: MapPath) =>
+  departures.filter((d) => path.routes.includes(d.route)).length;
+
 export const COVERAGE_STATS = {
-  towns: new Set(MAP_ROUTES.flatMap((r) => r.stops)).size,
-  routes: MAP_ROUTES.length,
+  towns: new Set(MAP_PATHS.flatMap((p) => p.stops)).size,
+  routes: ALL_ROUTES.filter((r) => r.available).length,
   dailyRuns: departures.length,
 };
