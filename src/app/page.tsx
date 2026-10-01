@@ -1,4 +1,4 @@
-import { Navbar, HeroSection, FooterBanner, AboutSection, DestinationsSection, SchedulesSection, WhyUsSection, FleetSection, HowToBuySection } from '@/features/home';
+import { Navbar, HeroSection, FooterBanner, AboutSection, DestinationsSection, SchedulesSection, WhyUsSection, FleetSection, HowToBuySection, TestimonialsSection } from '@/features/home';
 
 export default function HomePage() {
   return (
@@ -12,6 +12,7 @@ export default function HomePage() {
       <WhyUsSection />
       <FleetSection />
       <HowToBuySection />
+      <TestimonialsSection />
 
     </main>
   );
