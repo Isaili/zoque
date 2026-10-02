@@ -1,4 +1,4 @@
-import { ALL_ROUTES, buildDepartures, type RouteItem } from '../../schedules/components/schedulesData';
+import { ALL_ROUTES, buildDepartures, departureTimes, type RouteItem } from '../../schedules/components/schedulesData';
 import { project } from './chiapasGeo';
 
 export interface Town {
@@ -45,16 +45,40 @@ const pointOf = (name: string): [number, number] | null => {
   return waypoint ? project(...waypoint) : null;
 };
 
-// Curva suave que pasa por todos los puntos (cada tramo se arquea un poco hacia un lado)
-const curveThrough = (points: [number, number][]) =>
-  points.reduce((d, [x, y], i) => {
-    if (i === 0) return `M${x.toFixed(1)},${y.toFixed(1)}`;
-    const [px, py] = points[i - 1];
+type Point = [number, number];
+
+// Tramos de curva suave que pasan por todos los puntos (cada tramo se arquea un poco hacia un lado)
+const segmentsThrough = (points: Point[]) =>
+  points.slice(1).map((end, i) => {
+    const start = points[i];
     const bow = 0.18;
-    const cx = (px + x) / 2 - (y - py) * bow;
-    const cy = (py + y) / 2 + (x - px) * bow;
-    return `${d} Q${cx.toFixed(1)},${cy.toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
-  }, '');
+    const control: Point = [
+      (start[0] + end[0]) / 2 - (end[1] - start[1]) * bow,
+      (start[1] + end[1]) / 2 + (end[0] - start[0]) * bow,
+    ];
+    return { start, control, end };
+  });
+
+const curveThrough = (points: Point[]) =>
+  segmentsThrough(points).reduce(
+    (d, { control, end }) => `${d} Q${control[0].toFixed(1)},${control[1].toFixed(1)} ${end[0].toFixed(1)},${end[1].toFixed(1)}`,
+    `M${points[0][0].toFixed(1)},${points[0][1].toFixed(1)}`,
+  );
+
+// Puntos de muestra a lo largo de la curva con su distancia acumulada, para ubicar urbans por avance
+const sampleCurve = (points: Point[]) => {
+  const samples: { x: number; y: number; len: number }[] = [];
+  for (const { start, control, end } of segmentsThrough(points)) {
+    for (let step = samples.length ? 1 : 0; step <= 24; step++) {
+      const t = step / 24;
+      const x = (1 - t) ** 2 * start[0] + 2 * (1 - t) * t * control[0] + t ** 2 * end[0];
+      const y = (1 - t) ** 2 * start[1] + 2 * (1 - t) * t * control[1] + t ** 2 * end[1];
+      const prev = samples[samples.length - 1];
+      samples.push({ x, y, len: prev ? prev.len + Math.hypot(x - prev.x, y - prev.y) : 0 });
+    }
+  }
+  return samples;
+};
 
 export interface MapPath {
   key: string;
@@ -63,6 +87,8 @@ export interface MapPath {
   routes: RouteItem[]; // corridas que usan este camino, en cualquier sentido
   forward: boolean; // hay corridas en el sentido del trazo
   backward: boolean; // hay corridas en sentido contrario
+  directions: Record<string, boolean>; // por id de ruta: true si va en el sentido del trazo
+  samples: { x: number; y: number; len: number }[];
 }
 
 // Caminos del mapa generados a partir de la lista de corridas: si cambia la lista, cambia el mapa.
@@ -76,17 +102,21 @@ export const MAP_PATHS: MapPath[] = (() => {
     const forward = sequence.join('>') <= reversed.join('>');
     const canonical = forward ? sequence : reversed;
     const key = canonical.join('>');
+    const points = canonical.map(pointOf) as Point[];
     const path =
       paths.get(key) ??
       {
         key,
         stops: canonical.filter((name) => townByName.has(name)),
-        d: curveThrough(canonical.map(pointOf) as [number, number][]),
+        d: curveThrough(points),
         routes: [],
         forward: false,
         backward: false,
+        directions: {},
+        samples: sampleCurve(points),
       };
     path.routes.push(route);
+    path.directions[route.id] = forward;
     if (forward) path.forward = true;
     else path.backward = true;
     paths.set(key, path);
@@ -106,3 +136,48 @@ export const COVERAGE_STATS = {
   routes: ALL_ROUTES.filter((r) => r.available).length,
   dailyRuns: departures.length,
 };
+
+// Punto a una fracción (0 a 1) del recorrido del trazo, y si ahí avanza hacia la derecha
+export const pointAlong = (path: MapPath, fraction: number, forward: boolean) => {
+  const { samples } = path;
+  const total = samples[samples.length - 1].len;
+  const target = (forward ? fraction : 1 - fraction) * total;
+  let i = samples.findIndex((sample) => sample.len >= target);
+  if (i <= 0) i = 1;
+  const a = samples[i - 1];
+  const b = samples[i];
+  const t = b.len === a.len ? 0 : (target - a.len) / (b.len - a.len);
+  return {
+    x: a.x + (b.x - a.x) * t,
+    y: a.y + (b.y - a.y) * t,
+    facingRight: forward ? b.x >= a.x : a.x >= b.x,
+  };
+};
+
+export interface Trip {
+  key: string;
+  route: RouteItem;
+  path: MapPath;
+  forward: boolean;
+  departure: number; // minutos desde medianoche
+  arrival: number;
+  progress: number; // 0 al salir, 1 al llegar
+}
+
+// Corridas que van en camino a la hora dada (minutos desde medianoche, con fracción de segundos)
+export const tripsInProgress = (nowMin: number): Trip[] =>
+  MAP_PATHS.flatMap((path) =>
+    path.routes.flatMap((route) =>
+      departureTimes(route.schedule)
+        .filter((departure) => nowMin >= departure && nowMin < departure + route.durationMin)
+        .map((departure) => ({
+          key: `${route.id}-${departure}`,
+          route,
+          path,
+          forward: path.directions[route.id],
+          departure,
+          arrival: departure + route.durationMin,
+          progress: (nowMin - departure) / route.durationMin,
+        })),
+    ),
+  );

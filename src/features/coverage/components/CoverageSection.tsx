@@ -4,7 +4,19 @@ import { useState, useSyncExternalStore, type PointerEvent } from 'react';
 import Link from 'next/link';
 import { ArrowLeftRight, ArrowRight, MoveRight } from 'lucide-react';
 import { CHIAPAS_INSET, MUNICIPALITIES, STATE_OUTLINE, project, projectInset } from './chiapasGeo';
-import { COVERAGE_STATS, MAP_PATHS, TOWNS, runsFrom, runsOn, type MapPath, type Town } from './coverageData';
+import { formatTime12 } from '../../schedules/components/schedulesData';
+import {
+  COVERAGE_STATS,
+  MAP_PATHS,
+  TOWNS,
+  pointAlong,
+  runsFrom,
+  runsOn,
+  tripsInProgress,
+  type MapPath,
+  type Town,
+  type Trip,
+} from './coverageData';
 
 const SLAB_DEPTH = 18;
 const BASE_TILT = 16;
@@ -24,6 +36,27 @@ const getReducedMotion = () => window.matchMedia(REDUCED_MOTION).matches;
 const COMPACT = '(max-width: 639px)';
 const subscribeCompact = subscribeQuery(COMPACT);
 const getCompact = () => window.matchMedia(COMPACT).matches;
+
+// Reloj por segundo con la hora de Chiapas, sin importar desde dónde se vea la página.
+// En el servidor no hay hora (null) para evitar diferencias de hidratación.
+const subscribeClock = (onChange: () => void) => {
+  const interval = setInterval(onChange, 1000);
+  return () => clearInterval(interval);
+};
+const getSecondStamp = () => Math.floor(Date.now() / 1000);
+const chiapasClock = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Mexico_City',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric',
+  hourCycle: 'h23',
+});
+const chiapasMinutes = (secondStamp: number) => {
+  const parts = Object.fromEntries(
+    chiapasClock.formatToParts(new Date(secondStamp * 1000)).map(({ type, value }) => [type, Number(value)]),
+  );
+  return parts.hour * 60 + parts.minute + parts.second / 60;
+};
 
 // Recuadro de la zona del mapa principal dentro de la miniatura de Chiapas
 const [insetX1, insetY1] = projectInset(-93.82, 17.54);
@@ -45,7 +78,11 @@ export const CoverageSection = () => {
   const compact = useSyncExternalStore(subscribeCompact, getCompact, () => false);
   const [activeTown, setActiveTown] = useState<string | null>(null);
   const [activePath, setActivePath] = useState<string | null>(null);
+  const [activeTrip, setActiveTrip] = useState<string | null>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const secondStamp = useSyncExternalStore(subscribeClock, getSecondStamp, () => null);
+  const nowMin = secondStamp === null ? null : chiapasMinutes(secondStamp);
+  const trips = nowMin === null ? [] : tripsInProgress(nowMin);
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (reducedMotion || event.pointerType !== 'mouse') return;
@@ -63,6 +100,7 @@ export const CoverageSection = () => {
   };
 
   const active = TOWNS.find((town) => town.name === activeTown);
+  const hoveredTrip = trips.find((trip) => trip.key === activeTrip);
   const fontSize = compact ? 15 : 12;
 
   return (
@@ -282,6 +320,17 @@ export const CoverageSection = () => {
                 );
               })}
 
+              {/* Urbans en camino, ubicados según su hora de salida y llegada */}
+              {trips.map((trip) => (
+                <Van
+                  key={trip.key}
+                  trip={trip}
+                  on={isPathActive(trip.path) && (activeTrip === null || activeTrip === trip.key)}
+                  scale={compact ? 1.25 : 1}
+                  onActivate={setActiveTrip}
+                />
+              ))}
+
               {/* Pines */}
               {TOWNS.map((town) => (
                 <TownPin
@@ -299,11 +348,27 @@ export const CoverageSection = () => {
           {/* Información de la localidad seleccionada */}
           <div
             aria-live="polite"
-            className={`pointer-events-none absolute left-0 top-0 min-w-44 rounded-2xl border border-white/10 bg-[#04140B]/80 px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 sm:left-2 sm:top-2 ${
-              active ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
+            className={`pointer-events-none absolute left-0 top-0 min-w-48 rounded-2xl border border-white/10 bg-[#04140B]/80 px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 sm:left-2 sm:top-2 ${
+              active || hoveredTrip ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
             }`}
           >
-            {active && (
+            {hoveredTrip ? (
+              <>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200/70">En camino</p>
+                <p className="mt-0.5 text-sm font-bold text-white">
+                  {hoveredTrip.route.from} <span className="text-amber-300">→</span> {hoveredTrip.route.to}
+                </p>
+                <p className="mt-2 text-xs text-emerald-50/70">
+                  Salió {formatTime12(hoveredTrip.departure)} · Llega {formatTime12(hoveredTrip.arrival)}
+                </p>
+                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-200 to-amber-400"
+                    style={{ width: `${Math.round(hoveredTrip.progress * 100)}%` }}
+                  />
+                </div>
+              </>
+            ) : active && (
               <>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200/70">
                   {active.hub ? 'Terminal' : 'Localidad'}
@@ -315,6 +380,19 @@ export const CoverageSection = () => {
                 </p>
               </>
             )}
+          </div>
+
+          {/* En vivo: hora de Chiapas y urbans en camino */}
+          <div className="absolute -bottom-2 left-0 flex items-center gap-2 rounded-full sm:bottom-auto sm:left-auto sm:right-2 sm:top-2 border border-white/10 bg-[#04140B]/70 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-50/80 shadow-xl backdrop-blur-md">
+            <span className="relative flex h-2 w-2">
+              {!reducedMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />}
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+            </span>
+            En vivo
+            <span className="tabular-nums text-amber-200">{nowMin === null ? '--:--' : formatTime12(Math.floor(nowMin))}</span>
+            <span className="hidden text-emerald-50/50 sm:inline">
+              · {trips.length} {trips.length === 1 ? 'urban' : 'urbans'} en camino
+            </span>
           </div>
 
           {/* Miniatura: ubicación de la zona dentro de Chiapas */}
@@ -441,6 +519,43 @@ function TownPin({ town, on, reducedMotion, fontSize, onActivate }: TownPinProps
       >
         {town.name}
       </text>
+    </g>
+  );
+}
+
+interface VanProps {
+  trip: Trip;
+  on: boolean;
+  scale: number;
+  onActivate: (trip: string | null) => void;
+}
+
+// Urban vista de lado, sobre su línea, mirando hacia donde avanza
+function Van({ trip, on, scale, onActivate }: VanProps) {
+  const { x, y, facingRight } = pointAlong(trip.path, trip.progress, trip.forward);
+  return (
+    <g
+      transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${facingRight ? scale : -scale} ${scale})`}
+      opacity={on ? 1 : 0.2}
+      onPointerEnter={() => onActivate(trip.key)}
+      onPointerLeave={() => onActivate(null)}
+      className="cursor-pointer transition-opacity duration-300"
+    >
+      <title>{`${trip.route.from} → ${trip.route.to}: salió ${formatTime12(trip.departure)}, llega ${formatTime12(trip.arrival)}`}</title>
+      <ellipse cx="0" cy="1" rx="11" ry="2.6" fill="#000" opacity="0.4" />
+      <path
+        d="M-10,-1.5 L-10,-10 Q-10,-12 -8,-12 L4,-12 Q6,-12 7.6,-9.6 L10.2,-5.6 Q11,-4.6 11,-3.4 L11,-1.5 Z"
+        fill="#FFFFFF"
+        stroke="#0A2C1A"
+        strokeWidth="0.7"
+      />
+      <rect x="-8" y="-10.4" width="4.4" height="3.6" rx="0.6" fill="#0F3A23" />
+      <rect x="-2.6" y="-10.4" width="4.4" height="3.6" rx="0.6" fill="#0F3A23" />
+      <path d="M3,-10.4 L6,-10.4 L8.6,-6.8 L3,-6.8 Z" fill="#0F3A23" />
+      <rect x="-10" y="-5.6" width="21" height="1.5" fill="#FBBF24" />
+      <circle cx="10" cy="-3.2" r="0.9" fill="#FEF08A" />
+      <circle cx="-5.6" cy="-1.4" r="2" fill="#111827" stroke="#9CA3AF" strokeWidth="0.6" />
+      <circle cx="6" cy="-1.4" r="2" fill="#111827" stroke="#9CA3AF" strokeWidth="0.6" />
     </g>
   );
 }
