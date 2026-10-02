@@ -530,51 +530,32 @@ interface VanProps {
   onActivate: (trip: string | null) => void;
 }
 
-// Urban tipo Toyota Hiace 2025 vista de lado (techo alto, frente corto), mirando hacia donde avanza
+// Urban vista de lado, sobre su línea, mirando hacia donde avanza
 function Van({ trip, on, scale, onActivate }: VanProps) {
   const { x, y, facingRight } = pointAlong(trip.path, trip.progress, trip.forward);
-  const s = scale * 0.85;
   return (
     <g
-      transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${facingRight ? s : -s} ${s})`}
+      transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${facingRight ? scale : -scale} ${scale})`}
       opacity={on ? 1 : 0.2}
       onPointerEnter={() => onActivate(trip.key)}
       onPointerLeave={() => onActivate(null)}
       className="cursor-pointer transition-opacity duration-300"
     >
       <title>{`${trip.route.from} → ${trip.route.to}: salió ${formatTime12(trip.departure)}, llega ${formatTime12(trip.arrival)}`}</title>
-      {/* Sombra */}
-      <ellipse cx="0" cy="0.6" rx="15" ry="2.8" fill="#000" opacity="0.4" />
-      {/* Carrocería blanca */}
+      <ellipse cx="0" cy="1" rx="11" ry="2.6" fill="#000" opacity="0.4" />
       <path
-        d="M-13.5,-2.4 L-13.5,-13 Q-13.5,-14.6 -11.9,-14.6 L6.8,-14.6 Q8.6,-14.6 9.7,-13.2 L12.6,-8.6 Q13.4,-7.6 13.7,-6.2 L14,-4 Q14,-2.4 12.6,-2.4 Z"
+        d="M-10,-1.5 L-10,-10 Q-10,-12 -8,-12 L4,-12 Q6,-12 7.6,-9.6 L10.2,-5.6 Q11,-4.6 11,-3.4 L11,-1.5 Z"
         fill="#FFFFFF"
         stroke="#0A2C1A"
-        strokeWidth="0.6"
-        strokeLinejoin="round"
+        strokeWidth="0.7"
       />
-      {/* Ventanas polarizadas y parabrisas */}
-      <rect x="-12.2" y="-13.2" width="4.6" height="4.4" rx="0.7" fill="#12382A" />
-      <rect x="-7" y="-13.2" width="4.6" height="4.4" rx="0.7" fill="#12382A" />
-      <rect x="-1.8" y="-13.2" width="4.6" height="4.4" rx="0.7" fill="#12382A" />
-      <path d="M3.4,-13.2 L7.6,-13.2 Q8.4,-13.2 8.9,-12.5 L11.6,-8.8 L3.4,-8.8 Z" fill="#12382A" />
-      <rect x="-12" y="-12.9" width="18.6" height="0.8" fill="#FFFFFF" opacity="0.18" />
-      {/* Puerta corrediza */}
-      <path d="M-1.9,-8.4 L-1.9,-2.6 M3.2,-8.4 L3.2,-2.6" stroke="#0A2C1A" strokeOpacity="0.35" strokeWidth="0.45" />
-      {/* Franjas verdes */}
-      <path d="M-13.5,-7.4 L12.9,-7.4 L13.3,-5.9 L-13.5,-5.9 Z" fill="#1F7A4A" />
-      <rect x="-13.5" y="-5.2" width="26.9" height="0.6" fill="#0D3B23" />
-      {/* Frente: faro, parrilla y defensa */}
-      <path d="M11.9,-7.2 L13.6,-7 L13.8,-5.6 L12.2,-5.6 Z" fill="#E0F2FE" />
-      <rect x="12.6" y="-4.9" width="1.3" height="1.4" rx="0.3" fill="#1F2937" />
-      <rect x="-13.6" y="-3.3" width="27.6" height="1.1" rx="0.5" fill="#374151" />
-      {/* Espejo */}
-      <rect x="9.6" y="-10.2" width="1.2" height="1.6" rx="0.4" fill="#0A2C1A" />
-      {/* Llantas con rin */}
-      <circle cx="-8.4" cy="-1.8" r="2.5" fill="#111827" />
-      <circle cx="-8.4" cy="-1.8" r="1.1" fill="#D1D5DB" />
-      <circle cx="8.4" cy="-1.8" r="2.5" fill="#111827" />
-      <circle cx="8.4" cy="-1.8" r="1.1" fill="#D1D5DB" />
+      <rect x="-8" y="-10.4" width="4.4" height="3.6" rx="0.6" fill="#0F3A23" />
+      <rect x="-2.6" y="-10.4" width="4.4" height="3.6" rx="0.6" fill="#0F3A23" />
+      <path d="M3,-10.4 L6,-10.4 L8.6,-6.8 L3,-6.8 Z" fill="#0F3A23" />
+      <rect x="-10" y="-5.6" width="21" height="1.5" fill="#1F7A4A" />
+      <circle cx="10" cy="-3.2" r="0.9" fill="#FEF08A" />
+      <circle cx="-5.6" cy="-1.4" r="2" fill="#111827" stroke="#9CA3AF" strokeWidth="0.6" />
+      <circle cx="6" cy="-1.4" r="2" fill="#111827" stroke="#9CA3AF" strokeWidth="0.6" />
     </g>
   );
 }
