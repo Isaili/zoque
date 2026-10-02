@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "trace-routes": "npx --yes tsx scripts/trace-routes.ts"
   },
   "dependencies": {
     "lucide-react": "^1.47.0",

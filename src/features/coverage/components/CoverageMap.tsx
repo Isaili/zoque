@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { Map as MapLibreMap, Marker } from 'maplibre-gl';
+import type { GeoJSONSource, Map as MapLibreMap, Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { CHIAPAS_OUTLINE } from './chiapasGeo';
-import { MAP_PATHS, TOWNS, TOWNS_BOUNDS, pointAlong, type Trip } from './coverageData';
+import { TOWNS, TOWNS_BOUNDS, pointAlong, type MapPath, type Trip } from './coverageData';
 import { buildMapStyle } from './mapStyle';
 
 interface CoverageMapProps {
+  paths: MapPath[];
   trips: Trip[];
   highlightedPaths: string[] | null; // null = todas resaltadas
   highlightedTowns: string[] | null;
@@ -29,14 +30,14 @@ const DASH_SEQUENCE = [
   [0, 0.5, 3, 3.5], [0, 1, 3, 3], [0, 1.5, 3, 2.5], [0, 2, 3, 2], [0, 2.5, 3, 1.5], [0, 3, 3, 1], [0, 3.5, 3, 0.5],
 ];
 
-const ROUTES_GEOJSON = {
+const routesGeoJSON = (paths: MapPath[]) => ({
   type: 'FeatureCollection' as const,
-  features: MAP_PATHS.map((path) => ({
+  features: paths.map((path) => ({
     type: 'Feature' as const,
     properties: { key: path.key },
     geometry: { type: 'LineString' as const, coordinates: path.coordinates },
   })),
-};
+});
 
 // Todo el mundo menos Chiapas, para oscurecer lo que queda fuera del estado
 const OUTSIDE_CHIAPAS = {
@@ -105,6 +106,7 @@ const townElement = (town: (typeof TOWNS)[number]) => {
 };
 
 export function CoverageMap({
+  paths,
   trips,
   highlightedPaths,
   highlightedTowns,
@@ -120,6 +122,7 @@ export function CoverageMap({
   const townMarkers = useRef(new Map<string, HTMLElement>());
   const vanMarkers = useRef(new Map<string, { marker: Marker; inner: HTMLElement }>());
   const callbacks = useRef({ onTownHover, onTripHover });
+  const initialPaths = useRef(paths);
 
   useEffect(() => {
     callbacks.current = { onTownHover, onTripHover };
@@ -164,7 +167,7 @@ export function CoverageMap({
         const m = instance!;
         m.addSource('outside-chiapas', { type: 'geojson', data: OUTSIDE_CHIAPAS });
         m.addSource('chiapas-border', { type: 'geojson', data: CHIAPAS_BORDER });
-        m.addSource('routes', { type: 'geojson', data: ROUTES_GEOJSON });
+        m.addSource('routes', { type: 'geojson', data: routesGeoJSON(initialPaths.current) });
 
         m.addLayer({ id: 'outside-chiapas', type: 'fill', source: 'outside-chiapas', paint: { 'fill-color': '#020B06', 'fill-opacity': 0.55 } });
         m.addLayer({
@@ -225,6 +228,11 @@ export function CoverageMap({
       towns.clear();
     };
   }, []);
+
+  // Al llegar el trazado real de las carreteras, actualizar las líneas
+  useEffect(() => {
+    (map?.getSource('routes') as GeoJSONSource | undefined)?.setData(routesGeoJSON(paths));
+  }, [map, paths]);
 
   // Líneas que fluyen
   useEffect(() => {

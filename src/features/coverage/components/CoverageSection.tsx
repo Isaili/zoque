@@ -1,11 +1,21 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { ArrowLeftRight, ArrowRight, MoveRight } from 'lucide-react';
 import { formatTime12 } from '../../schedules/components/schedulesData';
 import { CoverageMap } from './CoverageMap';
-import { COVERAGE_STATS, MAP_PATHS, TOWNS, runsFrom, runsOn, tripsInProgress, type MapPath } from './coverageData';
+import {
+  COVERAGE_STATS,
+  MAP_PATHS,
+  TOWNS,
+  runsFrom,
+  runsOn,
+  tripsInProgress,
+  withRoad,
+  type MapPath,
+} from './coverageData';
+import { loadMissingRoads } from './roadLoader';
 
 const subscribeQuery = (query: string) => (onChange: () => void) => {
   const media = window.matchMedia(query);
@@ -55,15 +65,26 @@ export const CoverageSection = () => {
   const [activeTown, setActiveTown] = useState<string | null>(null);
   const [activePath, setActivePath] = useState<string | null>(null);
   const [activeTrip, setActiveTrip] = useState<string | null>(null);
+  const [paths, setPaths] = useState(MAP_PATHS);
+
+  // Cambiar las curvas aproximadas por el trazado real de las carreteras
+  useEffect(() => {
+    const controller = new AbortController();
+    loadMissingRoads(MAP_PATHS, controller.signal).then((roads) => {
+      if (controller.signal.aborted || roads.size === 0) return;
+      setPaths(MAP_PATHS.map((path) => (roads.has(path.key) ? withRoad(path, roads.get(path.key)!) : path)));
+    });
+    return () => controller.abort();
+  }, []);
   const secondStamp = useSyncExternalStore(subscribeClock, getSecondStamp, () => null);
   const nowMin = secondStamp === null ? null : chiapasMinutes(secondStamp);
-  const trips = nowMin === null ? [] : tripsInProgress(nowMin);
+  const trips = nowMin === null ? [] : tripsInProgress(nowMin, paths);
 
-  const selectedPath = MAP_PATHS.find((p) => p.key === activePath);
+  const selectedPath = paths.find((p) => p.key === activePath);
   const highlightedPaths = selectedPath
     ? [selectedPath.key]
     : activeTown
-      ? MAP_PATHS.filter((p) => p.stops.includes(activeTown)).map((p) => p.key)
+      ? paths.filter((p) => p.stops.includes(activeTown)).map((p) => p.key)
       : null;
   const highlightedTowns = selectedPath ? selectedPath.stops : activeTown ? [activeTown] : null;
 
@@ -169,6 +190,7 @@ export const CoverageSection = () => {
         {/* Mapa interactivo con calles, rutas y urbans en vivo */}
         <div className="relative">
           <CoverageMap
+            paths={paths}
             trips={trips}
             highlightedPaths={highlightedPaths}
             highlightedTowns={highlightedTowns}

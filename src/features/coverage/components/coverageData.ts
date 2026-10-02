@@ -1,4 +1,5 @@
 import { ALL_ROUTES, buildDepartures, departureTimes, type RouteItem } from '../../schedules/components/schedulesData';
+import { ROAD_GEOMETRY } from './roadGeometry';
 
 export interface Town {
   name: string;
@@ -96,6 +97,16 @@ const sampleCurve = (lonLats: Point[]) => {
   return samples;
 };
 
+// Muestras de una línea ya trazada (por ejemplo, la carretera real)
+const samplePolyline = (lonLats: Point[]) => {
+  const samples: { x: number; y: number; len: number }[] = [];
+  for (const [x, y] of lonLats.map(toPlane)) {
+    const prev = samples[samples.length - 1];
+    samples.push({ x, y, len: prev ? prev.len + Math.hypot(x - prev.x, y - prev.y) : 0 });
+  }
+  return samples;
+};
+
 export interface MapPath {
   key: string;
   stops: string[]; // localidades por las que pasa (sin puntos de paso)
@@ -105,7 +116,34 @@ export interface MapPath {
   backward: boolean; // hay corridas en sentido contrario
   directions: Record<string, boolean>; // por id de ruta: true si va en el sentido del trazo
   samples: { x: number; y: number; len: number }[];
+  onRoad: boolean; // true si el trazo sigue la carretera real
 }
+
+// Mismo camino, ahora siguiendo la carretera real
+export const withRoad = (path: MapPath, road: Point[]): MapPath => ({
+  ...path,
+  coordinates: road,
+  samples: samplePolyline(road),
+  onRoad: true,
+});
+
+// Paradas del camino en el formato del servicio de rutas OSRM ("lon,lat;lon,lat")
+export const osrmWaypoints = (path: MapPath) =>
+  path.stops
+    .map((name) => townByName.get(name)!)
+    .map((town) => `${town.lon},${town.lat}`)
+    .join(';');
+
+export const OSRM_ROUTE_URL = 'https://router.project-osrm.org/route/v1/driving/';
+
+// Quita puntos muy juntos para que el trazo pese poco (distancia mínima en grados aproximados)
+export const simplifyLine = (line: Point[], minStep = 0.0008): Point[] =>
+  line.filter((point, i) => {
+    if (i === 0 || i === line.length - 1) return true;
+    const [x, y] = toPlane(point);
+    const [px, py] = toPlane(line[i - 1]);
+    return Math.hypot(x - px, y - py) >= minStep;
+  });
 
 // Caminos del mapa generados a partir de la lista de corridas: si cambia la lista, cambia el mapa.
 // La ida y el regreso comparten un solo trazo.
@@ -131,6 +169,7 @@ export const MAP_PATHS: MapPath[] = (() => {
         backward: false,
         directions: {},
         samples,
+        onRoad: false,
       };
     path.routes.push(route);
     path.directions[route.id] = forward;
@@ -138,7 +177,7 @@ export const MAP_PATHS: MapPath[] = (() => {
     else path.backward = true;
     paths.set(key, path);
   }
-  return [...paths.values()];
+  return [...paths.values()].map((path) => (ROAD_GEOMETRY[path.key] ? withRoad(path, ROAD_GEOMETRY[path.key]) : path));
 })();
 
 const departures = buildDepartures(ALL_ROUTES);
@@ -181,8 +220,8 @@ export interface Trip {
 }
 
 // Corridas que van en camino a la hora dada (minutos desde medianoche, con fracción de segundos)
-export const tripsInProgress = (nowMin: number): Trip[] =>
-  MAP_PATHS.flatMap((path) =>
+export const tripsInProgress = (nowMin: number, paths: MapPath[] = MAP_PATHS): Trip[] =>
+  paths.flatMap((path) =>
     path.routes.flatMap((route) =>
       departureTimes(route.schedule)
         .filter((departure) => nowMin >= departure && nowMin < departure + route.durationMin)
