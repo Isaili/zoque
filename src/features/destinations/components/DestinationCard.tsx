@@ -65,14 +65,14 @@ const DestinationBadge = ({ tag }: Pick<Destination, 'tag'>) => {
 };
 
 const DestinationFront = ({ destination }: Pick<DestinationCardProps, 'destination'>) => (
-  <div className={`absolute inset-0 bg-white rounded-2xl shadow-[0_10px_30px_-12px_rgba(6,24,15,0.25)] overflow-hidden flex flex-col justify-between [backface-visibility:hidden] ${getBorderClass(destination.tag)}`}>
+  <div className={`absolute inset-0 bg-surface rounded-2xl shadow-[0_10px_30px_-12px_rgba(6,24,15,0.25)] overflow-hidden flex flex-col justify-between [backface-visibility:hidden] ${getBorderClass(destination.tag)}`}>
     <div className="relative w-full h-48 bg-gray-200">
       <div aria-hidden className="absolute inset-x-0 bottom-0 z-[1] h-16 bg-gradient-to-t from-black/30 to-transparent" />
       <Image src={destination.image} alt={destination.name} fill sizes="208px" draggable={false} className="object-cover pointer-events-none" />
       <DestinationBadge tag={destination.tag} />
     </div>
     <div className="p-3.5 flex flex-col justify-between flex-grow">
-      <h3 className="font-serif italic text-zoque-700 text-lg leading-tight mb-3 line-clamp-1">{destination.name}</h3>
+      <h3 className="font-serif italic text-brand text-lg leading-tight mb-3 line-clamp-1" translate="no">{destination.name}</h3>
       <div className="flex items-center justify-between text-xs text-gray-500 pt-2.5 border-t border-gray-100">
         <div className="flex items-center space-x-1">
           <Clock className="w-3.5 h-3.5 text-gray-400" />
@@ -90,7 +90,7 @@ const DestinationFront = ({ destination }: Pick<DestinationCardProps, 'destinati
 
 const DestinationBack = ({ destination }: Pick<DestinationCardProps, 'destination'>) => (
   <div className={`absolute inset-0 rounded-2xl bg-zoque-800 text-white p-5 flex flex-col overflow-hidden shadow-md [backface-visibility:hidden] [transform:rotateY(180deg)] ${getBorderClass(destination.tag)}`}>
-    <h3 className="font-serif italic text-cream text-xl leading-tight">{destination.name}</h3>
+    <h3 className="font-serif italic text-cream text-xl leading-tight" translate="no">{destination.name}</h3>
     <div className="my-3 h-px w-10 bg-gold" />
     <p className="text-sm leading-relaxed text-emerald-50/80">{destination.info ?? renderDefaultInfo(destination.copy === 1 ? 0 : -1)}</p>
   </div>

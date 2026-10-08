@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import { LanguageSelect } from '@/components/ui/LanguageSelect';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const WHATSAPP_URL = 'https://wa.me/9611077541';
 
@@ -20,7 +22,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 
 function Logo() {
   return (
-    <Link href="#inicio" className="group flex items-center gap-3" aria-label="Auto Transportes Zoque, ir al inicio">
+    <Link href="#inicio" className="group flex items-center gap-3" aria-label="Auto Transportes Zoque, ir al inicio" translate="no">
       <svg
         className="h-9 w-9 text-gold transition-transform duration-500 group-hover:rotate-45 sm:h-10 sm:w-10"
         viewBox="0 0 100 100"
@@ -41,7 +43,7 @@ function Logo() {
       </svg>
       <div className="flex flex-col">
         <span className="font-serif text-xl font-semibold uppercase tracking-widest text-white sm:text-2xl">ZOQUE</span>
-        <span className="font-sans text-[0.6rem] uppercase tracking-[0.2em] text-gold sm:text-[0.625rem]">
+        <span className="whitespace-nowrap font-sans text-[0.6rem] uppercase tracking-[0.2em] text-gold sm:text-[0.625rem]">
           Auto Transportes
         </span>
       </div>
@@ -127,7 +129,9 @@ export function Navbar() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <LanguageSelect />
+          <ThemeToggle />
           <Link
             href={WHATSAPP_URL}
             target="_blank"

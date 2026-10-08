@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { GeoJSONSource, Map as MapLibreMap, Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { CHIAPAS_OUTLINE } from './chiapasGeo';
-import { TOWNS, TOWNS_BOUNDS, pointAlong, splitTrip, tripsInProgress, type DelaysByPath, type MapPath, type Trip } from './coverageData';
+import { STOPOVERS, TOWNS, TOWNS_BOUNDS, pointAlong, splitTrip, tripsInProgress, type DelaysByPath, type MapPath, type Trip } from './coverageData';
 import { incidentTitle, isSevere, type IncidentKind, type TrafficIncident } from './traffic';
 import { clockMinutes, type Clock } from './clock';
 import { formatTime12 } from '../../schedules/components/schedulesData';
@@ -35,6 +35,7 @@ interface CoverageMapProps {
 }
 
 const VIEW = { pitch: 52, bearing: -14 };
+const STOPOVER_MIN_ZOOM = 11.5;
 
 // Margen del encuadre: en pantallas angostas más espacio a los lados para que quepan las etiquetas
 const fitPadding = (width: number) =>
@@ -350,6 +351,27 @@ export function CoverageMap({
         if (!cancelled) setMap(m);
       });
 
+      // Paradas intermedias (terminal de paso en Tuxtla): solo con el mapa acercado, para no encimarse con Tuxtla
+      const stopoverEls: HTMLElement[] = [];
+      const toggleStopovers = () => {
+        const show = instance!.getZoom() >= STOPOVER_MIN_ZOOM;
+        for (const el of stopoverEls) el.style.display = show ? '' : 'none';
+      };
+      instance.on('zoom', toggleStopovers);
+      for (const stop of STOPOVERS) {
+        const el = document.createElement('div');
+        el.className = 'relative z-10 h-0 w-0';
+        el.setAttribute('role', 'img');
+        el.setAttribute('aria-label', `${stop.name}: ${stop.address}, parada de ${stop.dwellMin} minutos`);
+        el.title = `${stop.name} · ${stop.address} · parada de ${stop.dwellMin} min`;
+        el.innerHTML = `
+          <span class="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-50 bg-amber-500 shadow"></span>
+          <div class="absolute ${CHIP_POSITION.right} whitespace-nowrap rounded-full border border-amber-200/30 bg-[#04140B]/85 px-2 py-0.5 text-[10px] font-semibold text-amber-100 shadow backdrop-blur">${stop.name} · ${stop.dwellMin} min</div>`;
+        new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([stop.lon, stop.lat]).addTo(instance);
+        stopoverEls.push(el);
+      }
+      toggleStopovers();
+
       // Pueblos
       for (const town of TOWNS) {
         const el = townElement(town);
@@ -562,7 +584,8 @@ export function CoverageMap({
       `${window.location.origin}/api/traffic/tiles/${layer}/{z}/{x}/{y}${version ? `?v=${version}` : ''}`;
     const ensure = (id: string, layer: string, visible: boolean, before: string, paint: Record<string, number>) => {
       if (visible && !map.getSource(id)) {
-        map.addSource(id, { type: 'raster', tiles: [tileUrl(layer)], tileSize: 512, minzoom: 5, maxzoom: 17, attribution: '© TomTom' });
+        // TomTom entrega 512 px por mosaico (alta resolución); se muestran a 256 para que textos y líneas tengan su tamaño real
+        map.addSource(id, { type: 'raster', tiles: [tileUrl(layer)], tileSize: 256, minzoom: 5, maxzoom: 17, attribution: '© TomTom' });
         map.addLayer({ id, type: 'raster', source: id, paint }, map.getLayer(before) ? before : undefined);
       }
       if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
@@ -660,7 +683,7 @@ export function CoverageMap({
   return (
     <div className="relative h-[440px] overflow-hidden rounded-3xl border border-white/10 bg-[#0B2E1B] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] sm:h-[540px]">
       {/* MapLibre le pone position: relative al contenedor, por eso la altura va explícita */}
-      <div ref={containerRef} className="h-full w-full" />
+      <div ref={containerRef} className="h-full w-full" translate="no" />
       {/* Viñeta para dar profundidad */}
       <div
         aria-hidden

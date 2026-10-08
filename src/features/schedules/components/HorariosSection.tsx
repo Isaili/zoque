@@ -80,13 +80,13 @@ export function HorariosSection() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-10 relative z-20 space-y-6">
 
         {/* BARRA DE BÚSQUEDA Y FILTROS */}
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl p-4 md:p-6 shadow-xl border border-slate-200/80">
+        <div className="bg-surface/95 backdrop-blur-md rounded-2xl p-4 md:p-6 shadow-xl border border-slate-200/80">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             
             {/* Origen */}
             <div className="md:col-span-3 space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-emerald-700" /> Origen
+                <MapPin className="w-4 h-4 text-emerald-700 dark:text-emerald-300" /> Origen
               </label>
               <select
                 value={selectedOrigin}
@@ -103,7 +103,7 @@ export function HorariosSection() {
             {/* Destino */}
             <div className="md:col-span-3 space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-emerald-700" /> Destino
+                <MapPin className="w-4 h-4 text-emerald-700 dark:text-emerald-300" /> Destino
               </label>
               <select
                 value={selectedDestination}
@@ -120,7 +120,7 @@ export function HorariosSection() {
             {/* Fecha */}
             <div className="md:col-span-3 space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-emerald-700" /> Fecha
+                <Calendar className="w-4 h-4 text-emerald-700 dark:text-emerald-300" /> Fecha
               </label>
               <input
                 type="date"
@@ -147,7 +147,7 @@ export function HorariosSection() {
         <DeparturesBoard routes={filteredRoutes} selectedDate={selectedDate} />
 
         {/* TABLA DE RUTAS: misma tipografía que la lista de próximas salidas */}
-        <section aria-labelledby="rutas-titulo" className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+        <section aria-labelledby="rutas-titulo" className="overflow-hidden rounded-xl border border-gray-100 bg-surface shadow-lg">
           <div className="bg-[#0D3B23] px-5 py-4 md:px-6">
             <h2 id="rutas-titulo" className="text-white font-extrabold text-lg md:text-xl tracking-tight">
               Todas las rutas
@@ -229,7 +229,7 @@ export function HorariosSection() {
           
           {/* Viaja Seguro */}
           <div className="flex items-start gap-3">
-            <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl">
+            <div className="p-2.5 bg-emerald-100 dark:bg-emerald-400/15 text-emerald-800 dark:text-emerald-200 rounded-xl">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -242,7 +242,7 @@ export function HorariosSection() {
 
           {/* Formas de Pago */}
           <div className="flex items-start gap-3">
-            <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl">
+            <div className="p-2.5 bg-emerald-100 dark:bg-emerald-400/15 text-emerald-800 dark:text-emerald-200 rounded-xl">
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
@@ -255,7 +255,7 @@ export function HorariosSection() {
 
           {/* Equipaje Permitido */}
           <div className="flex items-start gap-3">
-            <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl">
+            <div className="p-2.5 bg-emerald-100 dark:bg-emerald-400/15 text-emerald-800 dark:text-emerald-200 rounded-xl">
               <Luggage className="w-5 h-5" />
             </div>
             <div>

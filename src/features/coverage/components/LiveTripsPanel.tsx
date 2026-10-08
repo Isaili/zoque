@@ -5,7 +5,7 @@ import { AlertTriangle, BusFront, CheckCircle2, Construction, Crosshair, Octagon
 import type { LucideIcon } from 'lucide-react';
 import { formatTime12 } from '../../schedules/components/schedulesData';
 import { SIM_END, SIM_START, type Clock } from './clock';
-import { nextDeparture, upcomingStops, type Trip } from './coverageData';
+import { STOPOVERS, nextDeparture, timeAtFraction, upcomingStops, type Trip } from './coverageData';
 import { incidentTitle, isSevere, type IncidentKind, type TrafficIncident } from './traffic';
 import { incidentsAhead } from './useTraffic';
 
@@ -70,6 +70,10 @@ export function TripCard({ trip, incidents, nowMin, selected, follow, onFollow, 
   const ahead = incidentsAhead(trip, incidents);
   const holding = ahead.find(({ incident }) => incident.id === trip.heldBy)?.incident;
   const nextIncident = ahead.find(({ incident }) => incident.id !== trip.heldBy)?.incident;
+  const dwellHold = trip.holds.find((hold) => hold.id === trip.dwellingAt);
+  const dwellStop = STOPOVERS.find((stop) => stop.id === trip.dwellingAt);
+  const dwelling =
+    dwellHold && dwellStop ? { stop: dwellStop, leavesAt: timeAtFraction(trip, dwellHold.fraction) + dwellHold.minutes } : null;
   const isFinal = next?.name === trip.route.to;
   const left = minutesLeft(trip, nowMin);
 
@@ -86,7 +90,7 @@ export function TripCard({ trip, incidents, nowMin, selected, follow, onFollow, 
             <BusFront className="h-3 w-3" aria-hidden />
             Urban en camino
           </p>
-          <p className="mt-1 truncate text-base font-bold text-white">
+          <p className="mt-1 truncate text-base font-bold text-white" translate="no">
             {trip.route.from} <span className="text-amber-300">→</span> {trip.route.to}
           </p>
         </div>
@@ -108,7 +112,7 @@ export function TripCard({ trip, incidents, nowMin, selected, follow, onFollow, 
             type="button"
             onClick={onClose}
             aria-label="Cerrar detalle"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-emerald-50/60 transition-colors hover:bg-white/10 hover:text-white"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-emerald-50/60 transition-colors hover:bg-surface/10 hover:text-white"
           >
             <X className="h-4 w-4" />
           </button>
@@ -117,7 +121,7 @@ export function TripCard({ trip, incidents, nowMin, selected, follow, onFollow, 
       </div>
 
       <div className="mt-2 sm:mt-3">
-        <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+        <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-surface/10">
           <div
             className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-200"
             style={{ width: `${Math.round(trip.progress * 100)}%` }}
@@ -132,7 +136,18 @@ export function TripCard({ trip, incidents, nowMin, selected, follow, onFollow, 
         </div>
       </div>
 
-      {/* Avisos de tráfico: posición estimada, no GPS */}
+      {/* Parada programada y avisos de tráfico: posición estimada, no GPS */}
+      {dwelling && (
+        <div role="status" className="mt-3 rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs text-amber-100">
+          <p className="flex items-center gap-1.5 font-bold text-amber-200">
+            <Pause className="h-3.5 w-3.5" aria-hidden />
+            Cargando pasaje en la {dwelling.stop.name.toLowerCase()}
+          </p>
+          <p className="mt-0.5 leading-snug">
+            {dwelling.stop.address} · sale ~{formatTime12(Math.round(dwelling.leavesAt))}
+          </p>
+        </div>
+      )}
       {holding ? (
         <div role="status" className="mt-3 rounded-xl border border-red-400/40 bg-red-500/15 px-3 py-2 text-xs text-red-100">
           <p className="flex items-center gap-1.5 font-bold text-red-300">
@@ -162,14 +177,14 @@ export function TripCard({ trip, incidents, nowMin, selected, follow, onFollow, 
       )}
 
       <dl className="mt-2 grid grid-cols-2 gap-2 text-xs sm:mt-3">
-        <div className="rounded-xl bg-white/5 px-3 py-2">
+        <div className="rounded-xl bg-surface/5 px-3 py-2">
           <dt className="text-[10px] uppercase tracking-wider text-emerald-50/50">{isFinal ? 'Destino' : 'Próxima parada'}</dt>
           <dd className="mt-0.5 truncate font-semibold text-white">
-            {next ? next.name : trip.route.to}
+            <span translate="no">{next ? next.name : trip.route.to}</span>
             {next && !isFinal && <span className="ml-1 font-normal text-amber-200">~{formatTime12(Math.round(next.at))}</span>}
           </dd>
         </div>
-        <div className="rounded-xl bg-white/5 px-3 py-2">
+        <div className="rounded-xl bg-surface/5 px-3 py-2">
           <dt className="text-[10px] uppercase tracking-wider text-emerald-50/50">Llega en</dt>
           <dd className="mt-0.5 font-semibold tabular-nums text-amber-200">
             {formatLeft(left)}
@@ -203,8 +218,7 @@ export function EmptyState({ nowMin, onSimulate }: { nowMin: number; onSimulate:
       <p className="text-sm font-semibold text-white">No hay urbans en camino en este momento</p>
       {next && (
         <p className="mt-1 text-xs text-emerald-50/70">
-          Próxima salida <span className="font-semibold text-amber-200">{formatTime12(next.time)}</span> · {next.route.from} →{' '}
-          {next.route.to}
+          Próxima salida <span className="font-semibold text-amber-200">{formatTime12(next.time)}</span> · <span translate="no">{next.route.from} → {next.route.to}</span>
         </p>
       )}
       <button
@@ -235,8 +249,8 @@ export function TimeControls({ clock, nowMin, onLive, onSimulate, onTogglePlay, 
   const value = nowMin === null ? SIM_START : Math.min(SIM_END, Math.max(SIM_START, Math.floor(nowMin)));
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 backdrop-blur-sm sm:flex-row sm:items-center">
-      <div role="radiogroup" aria-label="Modo del mapa" className="flex shrink-0 rounded-full bg-black/30 p-1">
+    <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-sand p-3 sm:flex-row sm:items-center">
+      <div role="radiogroup" aria-label="Modo del mapa" className="flex shrink-0 rounded-full bg-surface p-1 shadow-sm ring-1 ring-gray-200">
         {[
           { on: !sim, label: 'En vivo', icon: Radio, action: onLive },
           { on: sim, label: 'Simulación', icon: Play, action: onSimulate },
@@ -248,7 +262,7 @@ export function TimeControls({ clock, nowMin, onLive, onSimulate, onTogglePlay, 
             aria-checked={on}
             onClick={action}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors ${
-              on ? 'bg-amber-300 text-[#0A2C1A]' : 'text-emerald-50/70 hover:text-white'
+              on ? 'bg-zoque-700 text-white' : 'text-gray-600 hover:text-brand'
             }`}
           >
             <Icon className="h-3.5 w-3.5" aria-hidden />
@@ -263,7 +277,7 @@ export function TimeControls({ clock, nowMin, onLive, onSimulate, onTogglePlay, 
             type="button"
             onClick={onTogglePlay}
             aria-label={playing ? 'Pausar simulación' : 'Reproducir simulación'}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-300/40 text-amber-200 transition-colors hover:bg-amber-300/10"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zoque-700/30 bg-surface text-brand transition-colors hover:bg-zoque-700 hover:text-white"
           >
             {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </button>
@@ -276,12 +290,12 @@ export function TimeControls({ clock, nowMin, onLive, onSimulate, onTogglePlay, 
             onChange={(e) => onSeek(Number(e.target.value))}
             aria-label="Hora de la simulación"
             aria-valuetext={formatTime12(value)}
-            className="h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-white/15 accent-amber-300"
+            className="h-1.5 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-gray-300 accent-zoque-700"
           />
-          <span className="shrink-0 whitespace-nowrap text-right text-sm font-semibold tabular-nums text-amber-200">{formatTime12(value)}</span>
+          <span className="shrink-0 whitespace-nowrap text-right text-sm font-semibold tabular-nums text-brand">{formatTime12(value)}</span>
         </div>
       ) : (
-        <p className="flex-1 text-xs text-emerald-50/60">
+        <p className="flex-1 text-xs text-gray-600">
           Posición estimada según el horario de cada corrida. Toca una urban para ver su recorrido.
         </p>
       )}
@@ -304,7 +318,7 @@ export function TripsStrip({ trips, nowMin, selectedTrip, onSelect, onHover }: T
 
   return (
     <div>
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-50/50">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">
         En camino ahora · {trips.length}
       </p>
       <ul className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:thin]">
@@ -319,33 +333,38 @@ export function TripsStrip({ trips, nowMin, selectedTrip, onSelect, onHover }: T
                 onPointerLeave={() => onHover(null)}
                 aria-pressed={on}
                 className={`w-48 rounded-xl border p-3 text-left transition-colors ${
-                  on ? 'border-emerald-300/60 bg-emerald-300/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
+                  on ? 'border-zoque-700 bg-emerald-50 dark:bg-emerald-400/10 shadow-md' : 'border-gray-200 bg-surface hover:border-zoque-700/40 hover:shadow-sm'
                 }`}
               >
-                <span className="block truncate text-xs font-semibold text-white">
-                  {trip.route.from} <span className="text-amber-300">→</span> {trip.route.to}
+                <span className="block truncate text-xs font-semibold text-gray-900" translate="no">
+                  {trip.route.from} <span className="text-gold-dark">→</span> {trip.route.to}
                 </span>
-                <span className="mt-2 block h-1 w-full overflow-hidden rounded-full bg-white/10">
+                <span className="mt-2 block h-1 w-full overflow-hidden rounded-full bg-gray-200">
                   <span
-                    className="block h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-200"
+                    className="block h-full rounded-full bg-gradient-to-r from-zoque-700 to-emerald-500"
                     style={{ width: `${Math.round(trip.progress * 100)}%` }}
                   />
                 </span>
-                {trip.heldBy ? (
-                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-300">
+                {trip.dwellingAt ? (
+                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-200">
+                    <Pause className="h-3 w-3" aria-hidden />
+                    En terminal de paso
+                  </span>
+                ) : trip.heldBy ? (
+                  <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-red-50 dark:bg-red-500/15 px-2 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-300">
                     <AlertTriangle className="h-3 w-3" aria-hidden />
                     Detenida · +{trip.delayMin} min
                   </span>
                 ) : (
                   trip.delayMin > 0 && (
-                    <span className="mt-1.5 inline-flex rounded-full bg-orange-400/15 px-2 py-0.5 text-[10px] font-bold text-orange-200">
+                    <span className="mt-1.5 inline-flex rounded-full bg-orange-50 dark:bg-orange-500/15 px-2 py-0.5 text-[10px] font-bold text-orange-700 dark:text-orange-300">
                       Retraso estimado +{trip.delayMin} min
                     </span>
                   )
                 )}
-                <span className="mt-1.5 flex justify-between text-[10px] tabular-nums text-emerald-50/60">
+                <span className="mt-1.5 flex justify-between text-[10px] tabular-nums text-gray-500">
                   <span>Llega {formatTime12(Math.round(trip.arrival))}</span>
-                  <span className="text-amber-200">{formatLeft(minutesLeft(trip, nowMin))}</span>
+                  <span className="font-semibold text-brand">{formatLeft(minutesLeft(trip, nowMin))}</span>
                 </span>
               </button>
             </li>
@@ -376,7 +395,7 @@ export function IncidentCard({ incident, onClose }: { incident: TrafficIncident;
           type="button"
           onClick={onClose}
           aria-label="Cerrar detalle"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-emerald-50/60 transition-colors hover:bg-white/10 hover:text-white"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-emerald-50/60 transition-colors hover:bg-surface/10 hover:text-white"
         >
           <X className="h-4 w-4" />
         </button>
@@ -384,11 +403,11 @@ export function IncidentCard({ incident, onClose }: { incident: TrafficIncident;
       {incident.description && <p className="mt-1 text-sm text-white">{incident.description}</p>}
       {where(incident) && <p className="mt-1 text-xs text-emerald-50/60">{where(incident)}</p>}
       <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded-xl bg-white/5 px-3 py-2">
+        <div className="rounded-xl bg-surface/5 px-3 py-2">
           <dt className="text-[10px] uppercase tracking-wider text-emerald-50/50">Retraso</dt>
           <dd className="mt-0.5 font-semibold text-amber-200">{incident.delayMin ? `~${incident.delayMin} min` : 'Sin dato'}</dd>
         </div>
-        <div className="rounded-xl bg-white/5 px-3 py-2">
+        <div className="rounded-xl bg-surface/5 px-3 py-2">
           <dt className="text-[10px] uppercase tracking-wider text-emerald-50/50">Tramo</dt>
           <dd className="mt-0.5 font-semibold text-white">
             {incident.lengthM ? (incident.lengthM >= 1000 ? `${(incident.lengthM / 1000).toFixed(1)} km` : `${incident.lengthM} m`) : 'Sin dato'}
@@ -407,7 +426,7 @@ interface RoadStatusProps {
   onSelect: (incident: TrafficIncident) => void;
   layers: { flow: boolean; incidents: boolean; map: boolean };
   options: MapOptions;
-  onOptionsChange: (options: MapOptions) => void;
+  onOptionsChange: (change: Partial<MapOptions>) => void;
 }
 
 export interface MapOptions {
@@ -418,8 +437,8 @@ export interface MapOptions {
 
 function Switch({ on, label, onToggle }: { on: boolean; label: string; onToggle: () => void }) {
   return (
-    <button type="button" role="switch" aria-checked={on} onClick={onToggle} className="flex items-center gap-2.5 text-xs font-semibold text-white">
-      <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${on ? 'bg-emerald-400' : 'bg-white/20'}`}>
+    <button type="button" role="switch" aria-checked={on} onClick={onToggle} className="flex items-center gap-2.5 text-xs font-semibold text-gray-800">
+      <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${on ? 'bg-zoque-700' : 'bg-gray-300'}`}>
         <span
           className={`absolute left-0 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : 'translate-x-0.5'}`}
         />
@@ -441,21 +460,21 @@ export function RoadStatus({ incidents, updatedAt, demo, selectedIncident, onSel
   const updated = new Date(updatedAt).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Mexico_City' });
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 backdrop-blur-sm">
+    <div className="rounded-2xl border border-gray-200 bg-sand p-3">
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-50/50">Estado de las vías</p>
-        <p className="text-[10px] text-emerald-50/40">
-          {demo && <span className="mr-2 rounded-full bg-amber-300/20 px-2 py-0.5 font-bold text-amber-200">Datos de demostración</span>}
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Estado de las vías</p>
+        <p className="text-[10px] text-gray-500">
+          {demo && <span className="mr-2 rounded-full bg-amber-100 dark:bg-amber-400/15 px-2 py-0.5 font-bold text-amber-800 dark:text-amber-200">Datos de demostración</span>}
           Actualizado {updated} · Tráfico © TomTom
         </p>
       </div>
 
       {(layers.flow || layers.incidents || layers.map) && (
-        <div className="mt-2 flex flex-col gap-3 rounded-xl bg-black/20 px-3 py-3">
+        <div className="mt-2 flex flex-col gap-3 rounded-xl bg-surface px-3 py-3 ring-1 ring-gray-200">
           {layers.map && (
             <div role="radiogroup" aria-label="Mapa base" className="flex items-center gap-3 text-xs">
-              <span className="font-semibold text-white">Mapa</span>
-              <span className="flex rounded-full bg-black/30 p-0.5">
+              <span className="font-semibold text-gray-800">Mapa</span>
+              <span className="flex rounded-full bg-gray-100 p-0.5">
                 {(
                   [
                     ['zoque', 'Zoque'],
@@ -467,9 +486,9 @@ export function RoadStatus({ incidents, updatedAt, demo, selectedIncident, onSel
                     type="button"
                     role="radio"
                     aria-checked={options.baseMap === value}
-                    onClick={() => onOptionsChange({ ...options, baseMap: value })}
+                    onClick={() => onOptionsChange({ baseMap: value })}
                     className={`rounded-full px-3 py-1 text-[11px] font-bold transition-colors ${
-                      options.baseMap === value ? 'bg-amber-300 text-[#0A2C1A]' : 'text-emerald-50/70 hover:text-white'
+                      options.baseMap === value ? 'bg-zoque-700 text-white' : 'text-gray-600 hover:text-brand'
                     }`}
                   >
                     {label}
@@ -480,8 +499,8 @@ export function RoadStatus({ incidents, updatedAt, demo, selectedIncident, onSel
           )}
           {layers.flow && (
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <Switch on={options.flow} label="Tráfico en todas las calles" onToggle={() => onOptionsChange({ ...options, flow: !options.flow })} />
-              <span className="flex items-center gap-2 text-[10px] text-emerald-50/60" aria-hidden>
+              <Switch on={options.flow} label="Tráfico en todas las calles" onToggle={() => onOptionsChange({ flow: !options.flow })} />
+              <span className="flex items-center gap-2 text-[10px] text-gray-500" aria-hidden>
                 Libre
                 <span className="flex h-1.5 w-20 overflow-hidden rounded-full">
                   {FLOW_LEGEND.map((color) => (
@@ -496,14 +515,14 @@ export function RoadStatus({ incidents, updatedAt, demo, selectedIncident, onSel
             <Switch
               on={options.incidentTiles}
               label="Incidentes en todas las calles"
-              onToggle={() => onOptionsChange({ ...options, incidentTiles: !options.incidentTiles })}
+              onToggle={() => onOptionsChange({ incidentTiles: !options.incidentTiles })}
             />
           )}
         </div>
       )}
 
       {sorted.length === 0 ? (
-        <p className="mt-2 flex items-center gap-2 px-1 text-xs text-emerald-200">
+        <p className="mt-2 flex items-center gap-2 px-1 text-xs font-medium text-brand">
           <CheckCircle2 className="h-4 w-4" aria-hidden />
           Sin incidentes reportados en nuestras rutas.
         </p>
@@ -520,7 +539,7 @@ export function RoadStatus({ incidents, updatedAt, demo, selectedIncident, onSel
                   onClick={() => onSelect(incident)}
                   aria-pressed={on}
                   className={`flex w-full items-start gap-3 rounded-xl px-2.5 py-2 text-left transition-colors ${
-                    on ? 'bg-white/10' : 'hover:bg-white/5'
+                    on ? 'bg-surface shadow-sm ring-1 ring-gray-200' : 'hover:bg-surface'
                   }`}
                 >
                   <span
@@ -531,11 +550,11 @@ export function RoadStatus({ incidents, updatedAt, demo, selectedIncident, onSel
                     <Icon className="h-3.5 w-3.5" aria-hidden />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs font-semibold text-white">
+                    <span className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs font-semibold text-gray-800">
                       {incidentTitle(incident)}
-                      {incident.delayMin ? <span className="text-[11px] font-bold text-amber-200">~{incident.delayMin} min</span> : null}
+                      {incident.delayMin ? <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300">~{incident.delayMin} min</span> : null}
                     </span>
-                    <span className="block truncate text-[11px] text-emerald-50/60">
+                    <span className="block truncate text-[11px] text-gray-500">
                       {[incident.description, where(incident)].filter(Boolean).join(' · ')}
                     </span>
                   </span>
@@ -549,7 +568,7 @@ export function RoadStatus({ incidents, updatedAt, demo, selectedIncident, onSel
         <button
           type="button"
           onClick={() => setShowAll((all) => !all)}
-          className="mt-1 w-full rounded-xl py-2 text-[11px] font-semibold uppercase tracking-wider text-amber-200 transition-colors hover:bg-white/5"
+          className="mt-1 w-full rounded-xl py-2 text-[11px] font-semibold uppercase tracking-wider text-brand transition-colors hover:bg-surface"
         >
           {showAll ? 'Ver menos' : `Ver los ${sorted.length} incidentes`}
         </button>

@@ -79,7 +79,7 @@ export function PromotionsSection() {
           <StaggerItem>
             <article className={`${cardBase} text-white`}>
               <CardPhoto src="/images/promociones/image.jpg" alt="Autobús de Auto Transportes Zoque en carretera" position="65% center" />
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-surface/15 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm">
                 <Repeat className="h-3.5 w-3.5" aria-hidden />
                 Viajes redondos
               </span>
@@ -100,7 +100,7 @@ export function PromotionsSection() {
           <StaggerItem>
             <article className={`${cardBase} text-white`}>
               <CardPhoto src="/images/promociones/cop1.png" alt="Vista de Copainalá, Chiapas" />
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-surface/15 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm">
                 <Sparkles className="h-3.5 w-3.5" aria-hidden />
                 De temporada
               </span>

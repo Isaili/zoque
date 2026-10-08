@@ -13,7 +13,7 @@ const VALUES = [
 
 export const AboutSection = () => {
   return (
-    <section id="nosotros" aria-labelledby="nosotros-titulo" className="w-full overflow-hidden bg-white">
+    <section id="nosotros" aria-labelledby="nosotros-titulo" className="w-full overflow-hidden bg-surface">
       <div className="mx-auto grid max-w-[1480px] grid-cols-1 items-stretch lg:grid-cols-[0.98fr_1.02fr]">
         <div className="flex flex-col justify-center px-4 py-16 sm:px-10 sm:py-20 lg:py-24 lg:pl-16 lg:pr-12">
           <SectionHeading
@@ -28,7 +28,7 @@ export const AboutSection = () => {
 
           <Reveal delay={0.1}>
             <p className="mt-6 max-w-[480px] text-[0.95rem] leading-relaxed text-gray-600 sm:text-base">
-              En <span className="font-semibold text-zoque-700">Auto Transportes Zoque</span> conectamos comunidades de
+              En <span className="font-semibold text-brand">Auto Transportes Zoque</span> conectamos comunidades de
               Chiapas ofreciendo un servicio seguro, puntual y cómodo. Nuestro compromiso es hacer que cada viaje sea una
               experiencia agradable para nuestros pasajeros.
             </p>

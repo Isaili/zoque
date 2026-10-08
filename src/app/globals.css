@@ -1,11 +1,18 @@
 @import "tailwindcss";
 
+/* Modo oscuro con la clase .dark en <html> (la elige la persona con el botón del navbar) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: var(--font-inter), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-serif: var(--font-playfair), Georgia, "Times New Roman", serif;
   --font-merriweather: var(--font-playfair), Georgia, "Times New Roman", serif;
 
-  /* Paleta de marca */
+  --animate-marquee: marquee 40s linear infinite;
+}
+
+/* Paleta de marca. Sin "inline" para que las clases usen variables y el modo oscuro pueda cambiarlas */
+@theme {
   --color-zoque-900: #06180F;
   --color-zoque-800: #0A2C1A;
   --color-zoque-700: #0D3B23;
@@ -16,7 +23,30 @@
   --color-cream: #F5F2EB;
   --color-sand: #F8F5EF;
 
-  --animate-marquee: marquee 40s linear infinite;
+  /* Colores por función: fondo de las secciones claras y verde de los títulos */
+  --color-surface: #FFFFFF;
+  --color-brand: #0D3B23;
+}
+
+/* Modo oscuro: las secciones claras pasan a verde muy oscuro y la escala de grises se invierte
+   (el texto gris oscuro se vuelve claro y los bordes claros se vuelven oscuros) */
+.dark {
+  color-scheme: dark;
+  --color-surface: #0A1A12;
+  --color-sand: #0F2419;
+  --color-brand: #A7E3C4;
+  --color-gold-dark: #D8B26E;
+
+  --color-gray-50: #102419;
+  --color-gray-100: #17301F;
+  --color-gray-200: #21402D;
+  --color-gray-300: #2E5440;
+  --color-gray-400: #7E9487;
+  --color-gray-500: #97A99D;
+  --color-gray-600: #B2C0B7;
+  --color-gray-700: #CAD4CD;
+  --color-gray-800: #E1E7E3;
+  --color-gray-900: #F5F2EB;
 }
 
 @keyframes marquee {
@@ -199,4 +229,24 @@ body {
   .zoque-incident[data-severity='severe'] .zoque-incident-pulse {
     animation: none;
   }
+}
+
+/* Traductor de Google: se usa nuestro selector, así que se ocultan su barra, globos y resaltados */
+iframe.skiptranslate,
+.skiptranslate > iframe,
+.goog-te-banner-frame,
+.goog-te-balloon-frame,
+#goog-gt-tt,
+.goog-tooltip,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-l4eHX-hSRGPd {
+  display: none !important;
+}
+body {
+  top: 0 !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
 }

@@ -49,6 +49,29 @@ const TUXTLA_EXIT: Record<'poniente' | 'norte', string[]> = {
     'Tuxtla: Blvd. Los Laguitos norte',
   ],
 };
+// Paradas intermedias con espera programada (ya incluida en la duración del viaje)
+export interface Stopover {
+  id: string;
+  name: string;
+  address: string;
+  lon: number;
+  lat: number;
+  dwellMin: number;
+  servesFrom: string; // solo las corridas que salen de esta localidad hacen la parada
+}
+
+export const STOPOVERS: Stopover[] = [
+  {
+    id: 'terminal-de-paso',
+    name: 'Terminal de paso',
+    address: 'Calle 3a Poniente Sur 1083, Tuxtla Gutiérrez',
+    lon: -93.12026,
+    lat: 16.74591,
+    dwellMin: 8,
+    servesFrom: 'Tuxtla Gutiérrez',
+  },
+];
+
 const WEST_TOWNS = new Set(['Raudales Malpaso', 'Ostuacán']);
 const TUXTLA = 'Tuxtla Gutiérrez';
 
@@ -260,23 +283,44 @@ export interface Trip {
   progress: number; // 0 al salir, 1 al llegar (distancia recorrida)
   delayMin: number; // retraso total estimado por incidentes en su camino
   heldBy: string | null; // incidente donde se estima que está detenida
-  holds: { id: string; fraction: number; minutes: number }[]; // en el sentido del viaje
+  dwellingAt: string | null; // parada programada donde está cargando pasaje
+  travelMin: number; // tiempo en movimiento según el horario (sin paradas programadas)
+  holds: TripHold[]; // esperas en el sentido del viaje, ordenadas
+}
+
+export interface TripHold {
+  id: string;
+  fraction: number;
+  minutes: number;
+  scheduled: boolean; // true = parada programada; false = retraso por incidente
 }
 
 // Posición estimada: avanza según el horario y se detiene en cada incidente el tiempo de retraso reportado
 const MAX_HOLD_MIN = 120;
-const estimate = (elapsed: number, duration: number, holds: Trip['holds']) => {
+const estimate = (elapsed: number, duration: number, holds: TripHold[]) => {
   let time = 0;
   let fraction = 0;
+  const moving = (progress: number) => ({ progress, heldBy: null, dwellingAt: null });
   for (const hold of holds) {
     const travel = (hold.fraction - fraction) * duration;
-    if (elapsed <= time + travel) return { progress: fraction + (elapsed - time) / duration, heldBy: null };
+    if (elapsed <= time + travel) return moving(fraction + (elapsed - time) / duration);
     time += travel;
     fraction = hold.fraction;
-    if (elapsed <= time + hold.minutes) return { progress: fraction, heldBy: hold.id };
+    if (elapsed <= time + hold.minutes) {
+      return { progress: fraction, heldBy: hold.scheduled ? null : hold.id, dwellingAt: hold.scheduled ? hold.id : null };
+    }
     time += hold.minutes;
   }
-  return { progress: Math.min(1, fraction + (elapsed - time) / duration), heldBy: null };
+  return moving(Math.min(1, fraction + (elapsed - time) / duration));
+};
+
+// Dónde queda cada parada programada sobre cada camino (se calcula una vez por trazo)
+const stopoverFractions = new WeakMap<MapPath, Map<string, number>>();
+const stopoverFraction = (path: MapPath, stop: Stopover) => {
+  let byStop = stopoverFractions.get(path);
+  if (!byStop) stopoverFractions.set(path, (byStop = new Map()));
+  if (!byStop.has(stop.id)) byStop.set(stop.id, fractionAlong(path, [stop.lon, stop.lat]));
+  return byStop.get(stop.id)!;
 };
 
 // Corridas que van en camino a la hora dada (minutos desde medianoche, con fracción de segundos)
@@ -284,11 +328,20 @@ export const tripsInProgress = (nowMin: number, paths: MapPath[] = MAP_PATHS, de
   paths.flatMap((path) =>
     path.routes.flatMap((route) => {
       const forward = path.directions[route.id];
-      const holds = (delays[path.key] ?? [])
-        .map(({ id, fraction, minutes }) => ({ id, fraction: forward ? fraction : 1 - fraction, minutes: Math.min(minutes, MAX_HOLD_MIN) }))
-        .filter((hold) => hold.minutes > 0 && hold.fraction > 0 && hold.fraction < 1)
-        .sort((a, b) => a.fraction - b.fraction);
-      const delayMin = holds.reduce((sum, hold) => sum + hold.minutes, 0);
+      const along = (fraction: number) => (forward ? fraction : 1 - fraction);
+      const incidentHolds: TripHold[] = (delays[path.key] ?? [])
+        .map(({ id, fraction, minutes }) => ({ id, fraction: along(fraction), minutes: Math.min(minutes, MAX_HOLD_MIN), scheduled: false }))
+        .filter((hold) => hold.minutes > 0 && hold.fraction > 0 && hold.fraction < 1);
+      const scheduledHolds: TripHold[] = STOPOVERS.filter((stop) => stop.servesFrom === route.from).map((stop) => ({
+        id: stop.id,
+        fraction: along(stopoverFraction(path, stop)),
+        minutes: stop.dwellMin,
+        scheduled: true,
+      }));
+      const holds = [...scheduledHolds, ...incidentHolds].sort((a, b) => a.fraction - b.fraction);
+      const delayMin = incidentHolds.reduce((sum, hold) => sum + hold.minutes, 0);
+      // La espera programada ya está dentro de la duración del horario
+      const travelMin = Math.max(1, route.durationMin - scheduledHolds.reduce((sum, hold) => sum + hold.minutes, 0));
       const total = route.durationMin + delayMin;
       return departureTimes(route.schedule)
         .filter((departure) => nowMin >= departure && nowMin < departure + total)
@@ -301,8 +354,9 @@ export const tripsInProgress = (nowMin: number, paths: MapPath[] = MAP_PATHS, de
           arrival: departure + total,
           scheduledArrival: departure + route.durationMin,
           delayMin,
+          travelMin,
           holds,
-          ...estimate(nowMin - departure, route.durationMin, holds),
+          ...estimate(nowMin - departure, travelMin, holds),
         }));
     }),
   );
@@ -327,7 +381,7 @@ export const fractionAlong = (path: MapPath, [lon, lat]: Point) => {
 // Hora estimada en que una corrida pasa por una fracción de su viaje, contando las esperas antes de ese punto
 export const timeAtFraction = (trip: Trip, fraction: number) =>
   trip.departure +
-  fraction * (trip.scheduledArrival - trip.departure) +
+  fraction * trip.travelMin +
   trip.holds.filter((hold) => hold.fraction < fraction).reduce((sum, hold) => sum + hold.minutes, 0);
 
 // Localidades por las que aún pasará una corrida, con la hora estimada (en el sentido del viaje)
@@ -347,6 +401,12 @@ export const upcomingStops = (trip: Trip) =>
   stopFractions(trip.path)
     .map(({ name, fraction }) => ({ name, fraction: trip.forward ? fraction : 1 - fraction }))
     .filter(({ fraction }) => fraction > trip.progress + 0.005)
+    .sort((a, b) => a.fraction - b.fraction)
+    .concat(
+      trip.holds
+        .filter((hold) => hold.scheduled && hold.fraction > trip.progress + 0.001)
+        .map((hold) => ({ name: STOPOVERS.find((stop) => stop.id === hold.id)?.name ?? hold.id, fraction: hold.fraction })),
+    )
     .sort((a, b) => a.fraction - b.fraction)
     .map(({ name, fraction }) => ({ name, at: timeAtFraction(trip, fraction) }));
 

@@ -7,7 +7,7 @@ export function FooterBanner() {
   return (
     <div className="relative w-full overflow-hidden border-y border-gold/30 bg-zoque-900 py-4 sm:py-5">
       <p className="sr-only">Destinos: {NAMES.join(', ')}</p>
-      <div aria-hidden className="flex w-max animate-marquee hover:[animation-play-state:paused]">
+      <div aria-hidden translate="no" className="flex w-max animate-marquee hover:[animation-play-state:paused]">
         {[0, 1].map((copy) => (
           <ul key={copy} className="flex shrink-0 items-center">
             {NAMES.map((name) => (

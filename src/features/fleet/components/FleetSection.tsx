@@ -22,7 +22,7 @@ const AMENITIES: Amenity[] = [
 
 export const FleetSection = () => {
   return (
-    <section id="flota" aria-labelledby="flota-titulo" className="w-full overflow-hidden bg-white">
+    <section id="flota" aria-labelledby="flota-titulo" className="w-full overflow-hidden bg-surface">
       <div className="grid w-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
         {/* Texto */}
         <div className="flex flex-col justify-center px-4 py-16 sm:px-10 sm:py-20 lg:pl-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))]">
@@ -57,15 +57,15 @@ export const FleetSection = () => {
             wrapperClassName="h-60 sm:absolute sm:inset-0 sm:h-auto"
           />
           {/* Degradado para fundir la foto con el panel de texto */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-white to-transparent lg:block" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-24 bg-gradient-to-r from-surface to-transparent lg:block" />
 
           <StaggerList
             stagger={0.07}
-            className="relative z-10 mx-4 -mt-10 mb-8 grid grid-cols-2 gap-x-2 gap-y-5 rounded-2xl bg-white px-3 py-6 shadow-xl shadow-zoque-900/10 min-[420px]:grid-cols-3 sm:m-5 sm:grid-cols-6 sm:bg-white/95 sm:px-4 sm:py-5 sm:backdrop-blur"
+            className="relative z-10 mx-4 -mt-10 mb-8 grid grid-cols-2 gap-x-2 gap-y-5 rounded-2xl bg-surface px-3 py-6 shadow-xl shadow-zoque-900/10 min-[420px]:grid-cols-3 sm:m-5 sm:grid-cols-6 sm:bg-surface/95 sm:px-4 sm:py-5 sm:backdrop-blur"
           >
             {AMENITIES.map(({ label, note, icon: Icon }) => (
               <StaggerItem key={label} className="group flex flex-col items-center text-center">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sand text-zoque-700 transition-all duration-300 group-hover:-translate-y-1 group-hover:bg-zoque-700 group-hover:text-gold">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-sand text-brand transition-all duration-300 group-hover:-translate-y-1 group-hover:bg-zoque-700 group-hover:text-gold">
                   <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
                 </span>
                 <span className="mt-2 text-[11px] font-medium leading-snug text-gray-800 md:text-xs">{label}</span>

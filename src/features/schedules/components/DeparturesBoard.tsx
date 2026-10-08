@@ -10,7 +10,7 @@ const BOARDING_WINDOW_MIN = 15;
 type Status = 'abordando' | 'a-tiempo' | 'programada';
 
 const STATUS_STYLES: Record<Status, { label: string; className: string; dot: string }> = {
-  abordando: { label: 'Abordando', className: 'text-amber-600', dot: 'bg-amber-500 animate-pulse' },
+  abordando: { label: 'Abordando', className: 'text-amber-600 dark:text-amber-300', dot: 'bg-amber-500 animate-pulse' },
   'a-tiempo': { label: 'A tiempo', className: 'text-gray-500', dot: 'bg-emerald-600' },
   programada: { label: 'Programada', className: 'text-gray-500', dot: 'bg-gray-400' },
 };
@@ -59,7 +59,7 @@ export function DeparturesBoard({ routes, selectedDate }: DeparturesBoardProps) 
   const dayLabel = selectedDate && (!now || selectedDate !== todayISO(now)) ? formatDateLabel(selectedDate) : 'Hoy';
 
   return (
-    <section aria-labelledby="salidas-titulo" className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg">
+    <section aria-labelledby="salidas-titulo" className="overflow-hidden rounded-xl border border-gray-100 bg-surface shadow-lg">
       {/* Encabezado del tablero */}
       <div className="bg-[#0D3B23] px-5 py-4 md:px-6 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -101,7 +101,7 @@ export function DeparturesBoard({ routes, selectedDate }: DeparturesBoardProps) 
                 return (
                   <tr key={departure.key} className="border-t border-gray-100 text-gray-700 transition-colors hover:bg-gray-50/70">
                     <th scope="row" className="px-5 py-3.5 font-normal">
-                      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <span translate="no" className="inline-flex items-center gap-1.5 whitespace-nowrap">
                         {route.from}
                         <span className="inline-flex h-6 w-6 items-center justify-center text-gray-400">
                           <ArrowRight className="h-3.5 w-3.5" />

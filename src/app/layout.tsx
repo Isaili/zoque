@@ -15,6 +15,8 @@ const playfair = Playfair_Display({
   display: 'swap',
 });
 
+const THEME_SCRIPT = `try{if(localStorage.getItem('zoque-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`;
+
 export const metadata: Metadata = {
   title: 'Auto Transportes Zoque',
   description: 'Conectamos destinos, acercamos historias.',
@@ -30,7 +32,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`scroll-smooth ${inter.variable} ${playfair.variable}`}>
+    <html lang="es" className={`scroll-smooth ${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Aplica el modo oscuro guardado antes de pintar, para que la página no parpadee en claro */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="font-sans bg-slate-950 text-slate-100 antialiased">
         {children}
       </body>

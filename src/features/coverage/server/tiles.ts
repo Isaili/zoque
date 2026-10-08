@@ -2,7 +2,7 @@
 
 export type TileLayer = 'flow' | 'incidents' | 'map';
 
-export const TILE_SIZE = 512; // mosaicos grandes = menos consultas a TomTom
+export const TILE_SIZE = 512; // alta resolución: el mapa los muestra a 256 px para que se vean nítidos
 
 const LAYERS: Record<TileLayer, { path: string; ext: string; params: Record<string, string>; ttlMs: number; browserMaxAge: number }> = {
   // Velocidad del tráfico en todas las calles

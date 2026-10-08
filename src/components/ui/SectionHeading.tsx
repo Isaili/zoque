@@ -38,7 +38,7 @@ export function SectionHeading({
       <h2
         id={id}
         className={`mt-4 font-serif text-[2.1rem] italic leading-[1.02] tracking-[-0.03em] text-balance sm:text-5xl lg:text-[3.4rem] ${
-          dark ? 'text-cream' : 'text-zoque-700'
+          dark ? 'text-cream' : 'text-brand'
         }`}
       >
         {title}

@@ -46,7 +46,7 @@ export function FaqSection() {
   const baseId = useId();
 
   return (
-    <section id="preguntas" aria-labelledby="preguntas-titulo" className="w-full overflow-hidden bg-white py-16 sm:py-20 lg:py-24">
+    <section id="preguntas" aria-labelledby="preguntas-titulo" className="w-full overflow-hidden bg-surface py-16 sm:py-20 lg:py-24">
       <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-16">
         <div className="flex flex-col">
           <SectionHeading
@@ -91,7 +91,7 @@ export function FaqSection() {
                     >
                       <span
                         className={`font-serif text-lg italic transition-colors sm:text-xl ${
-                          isOpen ? 'text-zoque-700' : 'text-gray-900 group-hover:text-zoque-700'
+                          isOpen ? 'text-brand' : 'text-gray-900 group-hover:text-brand'
                         }`}
                       >
                         {question}
@@ -100,7 +100,7 @@ export function FaqSection() {
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
                           isOpen
                             ? 'rotate-45 border-zoque-700 bg-zoque-700 text-gold'
-                            : 'border-gray-300 text-gray-500 group-hover:border-zoque-700 group-hover:text-zoque-700'
+                            : 'border-gray-300 text-gray-500 group-hover:border-zoque-700 group-hover:text-brand'
                         }`}
                       >
                         <Plus className="h-4 w-4" aria-hidden />
@@ -130,7 +130,7 @@ export function FaqSection() {
 
           <Reveal delay={0.1} className="mt-8 flex flex-col gap-4 rounded-2xl bg-sand p-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-gray-700">
-              ¿No encuentras tu respuesta? <span className="font-semibold text-zoque-700">Escríbenos y te ayudamos.</span>
+              ¿No encuentras tu respuesta? <span className="font-semibold text-brand">Escríbenos y te ayudamos.</span>
             </p>
             <Link
               href={WHATSAPP_URL}

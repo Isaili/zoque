@@ -66,7 +66,7 @@ export const HowToBuySection = () => {
               transition={{ duration: 0.6, delay: index * 0.08, ease: EASE }}
               className="group relative flex items-center gap-5 lg:flex-col lg:gap-0 lg:text-center"
             >
-              <span className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-zoque-700 shadow-sm transition-all duration-500 group-hover:-translate-y-1 group-hover:border-zoque-700 group-hover:bg-zoque-700 group-hover:text-gold group-hover:shadow-xl group-hover:shadow-zoque-900/20 md:h-20 md:w-20">
+              <span className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-surface text-brand shadow-sm transition-all duration-500 group-hover:-translate-y-1 group-hover:border-zoque-700 group-hover:bg-zoque-700 group-hover:text-gold group-hover:shadow-xl group-hover:shadow-zoque-900/20 md:h-20 md:w-20">
                 <Icon className="h-7 w-7 md:h-8 md:w-8" strokeWidth={1.5} aria-hidden />
                 <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-gold text-[11px] font-bold text-zoque-900 ring-4 ring-sand">
                   {index + 1}

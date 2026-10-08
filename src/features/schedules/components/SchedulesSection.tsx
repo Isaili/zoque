@@ -93,7 +93,7 @@ const FlipButton = ({ view, onFlip }: { view: RowView; onFlip: () => void }) => 
     title="Invertir dirección"
     aria-label={`Invertir dirección: ${view.to} a ${view.from}`}
     className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors ${
-      view.reversed ? 'bg-amber-50 text-amber-500 hover:bg-amber-100' : 'text-gray-400 hover:bg-gray-100 hover:text-zoque-700'
+      view.reversed ? 'bg-amber-50 dark:bg-amber-400/10 text-amber-500 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-400/20' : 'text-gray-400 hover:bg-gray-100 hover:text-brand'
     }`}
   >
     <ArrowRight
@@ -119,7 +119,7 @@ export const SchedulesSection = () => {
   const views = SCHEDULES.map((row) => viewOf(row, flips[row.id] ?? 0));
 
   return (
-    <section id="horarios" aria-labelledby="horarios-titulo" className="w-full bg-white py-16 sm:py-20 lg:py-24">
+    <section id="horarios" aria-labelledby="horarios-titulo" className="w-full bg-surface py-16 sm:py-20 lg:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-10">
         <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
           <SectionHeading
@@ -144,9 +144,9 @@ export const SchedulesSection = () => {
         {/* Celular: tarjetas */}
         <StaggerList className="mt-10 grid gap-3 md:hidden" stagger={0.06}>
           {views.map((view) => (
-            <StaggerItem key={view.row.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-[0_8px_24px_-12px_rgba(6,24,15,0.2)]">
+            <StaggerItem key={view.row.id} className="rounded-2xl border border-gray-100 bg-surface p-4 shadow-[0_8px_24px_-12px_rgba(6,24,15,0.2)]">
               <div className="flex items-center justify-between gap-2">
-                <p className="flex min-w-0 flex-wrap items-center gap-x-1 text-sm font-semibold text-gray-900">
+                <p className="flex min-w-0 flex-wrap items-center gap-x-1 text-sm font-semibold text-gray-900" translate="no">
                   <span>{view.from}</span>
                   <FlipButton view={view} onFlip={() => flipRoute(view.row.id)} />
                   <span>{view.to}</span>
@@ -180,7 +180,7 @@ export const SchedulesSection = () => {
         </StaggerList>
 
         {/* Tableta y escritorio: tabla */}
-        <Reveal delay={0.1} className="mt-12 hidden overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_20px_50px_-20px_rgba(6,24,15,0.25)] md:block">
+        <Reveal delay={0.1} className="mt-12 hidden overflow-hidden rounded-2xl border border-gray-100 bg-surface shadow-[0_20px_50px_-20px_rgba(6,24,15,0.25)] md:block">
           <div className="overflow-x-auto">
           <table className="w-full min-w-[42rem] text-left text-sm">
             <thead className="bg-zoque-700 text-white">
@@ -196,7 +196,7 @@ export const SchedulesSection = () => {
               {views.map((view) => (
                 <tr key={view.row.id} className="border-t border-gray-100 text-gray-700 transition-colors hover:bg-sand">
                   <th scope="row" className="px-6 py-4 font-normal">
-                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-medium text-gray-900">
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-medium text-gray-900" translate="no">
                       {view.from}
                       <FlipButton view={view} onFlip={() => flipRoute(view.row.id)} />
                       {view.to}

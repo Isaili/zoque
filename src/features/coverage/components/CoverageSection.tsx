@@ -12,6 +12,7 @@ import {
   runsOn,
   tripsInProgress,
   withRoad,
+  type DelaysByPath,
   type MapPath,
 } from './coverageData';
 import { loadMissingRoads } from './roadLoader';
@@ -44,6 +45,7 @@ const getTick = () => Math.floor(Date.now() / TICK_MS);
 
 // Caminos ordenados por número de corridas, para la lista
 const NO_INCIDENTS: TrafficIncident[] = [];
+const NO_DELAYS: DelaysByPath = {};
 
 const PATHS_BY_RUNS = [...MAP_PATHS].sort((a, b) => runsOn(b) - runsOn(a));
 
@@ -83,7 +85,9 @@ export const CoverageSection = () => {
   }, []);
   const tick = useSyncExternalStore(subscribeTick, getTick, () => null);
   const nowMin = tick === null ? null : clockMinutes(clock, tick * TICK_MS);
-  const delays = useDelays(incidents, paths);
+  const liveDelays = useDelays(incidents, paths);
+  // El tráfico es de este momento: en la simulación del día no se aplica
+  const delays = clock.mode === 'live' ? liveDelays : NO_DELAYS;
   const trips = nowMin === null ? [] : tripsInProgress(nowMin, paths, delays);
   const selectedIncident = incidents.find((incident) => incident.id === selectedIncidentId);
 
@@ -140,33 +144,17 @@ export const CoverageSection = () => {
   const active = TOWNS.find((town) => town.name === activeTown);
 
   return (
-    <section
-      id="cobertura"
-      aria-labelledby="cobertura-titulo"
-      className="relative w-full overflow-hidden bg-[#061A10] text-white"
-    >
-      {/* Fondo: brillo radial y retícula sutil */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_72%_45%,rgba(31,107,66,0.55)_0%,rgba(10,44,26,0.6)_40%,transparent_75%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(rgba(255,255,255,0.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.6)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
-      />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
-
-      <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 sm:px-10 sm:py-20 lg:py-24 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.7fr)] lg:gap-12">
-        {/* Texto */}
-        <div>
+    <section id="cobertura" aria-labelledby="cobertura-titulo" className="relative w-full bg-surface text-gray-900">
+      <div className="relative mx-auto grid max-w-7xl items-start gap-10 px-4 py-16 sm:px-10 sm:py-20 lg:py-24 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.7fr)] lg:gap-12">
+        {/* Texto: arriba, a la altura del mapa, y fijo mientras se recorren los paneles de abajo */}
+        <div className="lg:sticky lg:top-28">
           <SectionHeading
             id="cobertura-titulo"
-            tone="dark"
             eyebrow="Mapa de cobertura"
             title={
               <>
                 Conectamos{' '}
-                <span className="bg-gradient-to-r from-amber-100 via-amber-300 to-gold bg-clip-text pr-2 text-transparent">
+                <span className="text-gold-dark">
                   Chiapas
                 </span>
               </>
@@ -175,15 +163,15 @@ export const CoverageSection = () => {
           />
 
           <Reveal delay={0.1}>
-          <dl className="mt-8 flex max-w-sm divide-x divide-white/10">
+          <dl className="mt-8 flex max-w-sm divide-x divide-gray-200">
             {[
               { value: COVERAGE_STATS.towns, label: 'Localidades' },
               { value: COVERAGE_STATS.routes, label: 'Rutas' },
-              { value: COVERAGE_STATS.dailyRuns, label: 'Corridas al día' },
+              { value: COVERAGE_STATS.dailyRuns, label: 'Salidas al día' },
             ].map(({ value, label }) => (
               <div key={label} className="flex flex-1 flex-col-reverse px-4 first:pl-0">
-                <dt className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-50/50">{label}</dt>
-                <dd className="font-serif text-4xl italic tabular-nums text-amber-200">
+                <dt className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">{label}</dt>
+                <dd className="font-serif text-4xl italic tabular-nums text-brand">
                   <CountUp value={value} />
                 </dd>
               </div>
@@ -193,7 +181,7 @@ export const CoverageSection = () => {
 
           {/* Lista de rutas: al pasar el mouse se resalta en el mapa */}
           <Reveal delay={0.15}>
-          <ul className="mt-8 max-w-sm divide-y divide-white/5 rounded-2xl border border-white/10 bg-white/[0.03] p-1.5 backdrop-blur-sm">
+          <ul className="mt-8 max-w-sm divide-y divide-gray-100 rounded-2xl border border-gray-200 bg-sand p-1.5">
             {PATHS_BY_RUNS.map((path) => {
               const [from, to] = endpoints(path);
               const both = path.forward && path.backward;
@@ -207,20 +195,20 @@ export const CoverageSection = () => {
                     onFocus={() => setActivePath(path.key)}
                     onBlur={() => setActivePath(null)}
                     className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition-colors ${
-                      on ? 'bg-amber-300/10 text-white' : 'text-emerald-50/80 hover:bg-white/5'
+                      on ? 'bg-surface text-brand shadow-sm' : 'text-gray-700 hover:bg-surface/70'
                     }`}
                   >
-                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${on ? 'bg-amber-300' : 'bg-amber-300/50'}`} />
-                    <span className="min-w-0 flex-1 truncate">
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${on ? 'bg-gold-dark' : 'bg-gold/50'}`} />
+                    <span className="min-w-0 flex-1 truncate" translate="no">
                       {from}
                       {both ? (
-                        <ArrowLeftRight className="mx-1.5 inline h-3 w-3 text-amber-300/80" aria-label="ida y vuelta" />
+                        <ArrowLeftRight className="mx-1.5 inline h-3 w-3 text-gold-dark" aria-label="ida y vuelta" />
                       ) : (
-                        <MoveRight className="mx-1.5 inline h-3 w-3 text-amber-300/80" aria-label="a" />
+                        <MoveRight className="mx-1.5 inline h-3 w-3 text-gold-dark" aria-label="a" />
                       )}
                       {to}
                     </span>
-                    <span className="shrink-0 tabular-nums text-[11px] text-emerald-50/50">{runsOn(path)}/día</span>
+                    <span className="shrink-0 tabular-nums text-[11px] text-gray-500">{runsOn(path)}/día</span>
                   </button>
                 </li>
               );
@@ -231,7 +219,7 @@ export const CoverageSection = () => {
           <div className="mt-8">
             <Link
               href="/horarios"
-              className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-200 via-amber-300 to-amber-400 px-6 py-3 text-xs font-bold uppercase tracking-wider text-[#0A2C1A] shadow-[0_8px_30px_-8px_rgba(252,211,77,0.6)] transition-shadow hover:shadow-[0_10px_40px_-6px_rgba(252,211,77,0.8)]"
+              className="group inline-flex items-center gap-2 rounded-full bg-zoque-700 px-6 py-3 text-xs font-bold uppercase tracking-wider text-white transition-all hover:-translate-y-0.5 hover:bg-zoque-600 hover:shadow-lg hover:shadow-zoque-900/20"
             >
               Ver rutas
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -328,7 +316,7 @@ export const CoverageSection = () => {
                 onSelect={focusIncident}
                 layers={layers}
                 options={mapOptions}
-                onOptionsChange={setMapOptions}
+                onOptionsChange={(change) => setMapOptions((current) => ({ ...current, ...change }))}
               />
             )}
           </div>
