@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { GeoJSONSource, Map as MapLibreMap, Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { CHIAPAS_OUTLINE } from './chiapasGeo';
-import { TOWNS, TOWNS_BOUNDS, pointAlong, splitTrip, tripsInProgress, type MapPath, type Trip } from './coverageData';
+import { TOWNS, TOWNS_BOUNDS, pointAlong, splitTrip, tripsInProgress, type DelaysByPath, type MapPath, type Trip } from './coverageData';
+import { incidentTitle, isSevere, type IncidentKind, type TrafficIncident } from './traffic';
 import { clockMinutes, type Clock } from './clock';
 import { formatTime12 } from '../../schedules/components/schedulesData';
 import { buildMapStyle } from './mapStyle';
@@ -19,6 +20,14 @@ interface CoverageMapProps {
   follow: boolean;
   reducedMotion: boolean;
   viewResetKey: number; // al cambiar, vuelve a mostrar todas las rutas
+  delays: DelaysByPath;
+  incidents: TrafficIncident[];
+  selectedIncident: string | null;
+  focus: { lngLat: [number, number]; nonce: number } | null; // al cambiar, la cámara va a ese punto
+  onIncidentSelect: (incident: string | null) => void;
+  showFlow: boolean; // tráfico de TomTom en todas las calles
+  showIncidentTiles: boolean; // incidentes de TomTom en todas las calles
+  baseMap: 'zoque' | 'tomtom';
   onTownHover: (town: string | null) => void;
   onTripHover: (trip: string | null) => void;
   onTripSelect: (trip: string | null) => void;
@@ -120,7 +129,31 @@ interface VanEntry {
   inner: HTMLElement;
   facingRight: boolean | null;
   look: string;
+  held: boolean;
 }
+
+const INCIDENT_ICON: Record<IncidentKind, string> = {
+  accident: '<path d="M12 4 3 20h18L12 4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.2" r=".9" fill="currentColor"/>',
+  hazard: '<path d="M12 4 3 20h18L12 4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.2" r=".9" fill="currentColor"/>',
+  breakdown: '<path d="M12 4 3 20h18L12 4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.2" r=".9" fill="currentColor"/>',
+  closure: '<circle cx="12" cy="12" r="8.5"/><path d="M6 12h12"/>',
+  lane: '<circle cx="12" cy="12" r="8.5"/><path d="M6 12h12"/>',
+  jam: '<path d="M5 15.5h14l-1.6-5.2a1.5 1.5 0 0 0-1.4-1.1H8a1.5 1.5 0 0 0-1.4 1.1z"/><circle cx="8.2" cy="16.5" r="1.4"/><circle cx="15.8" cy="16.5" r="1.4"/>',
+  works: '<path d="M9.5 4h5l4.5 16h-14z"/><path d="M7.4 13h9.2"/>',
+  other: '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v5"/><circle cx="12" cy="16" r=".9" fill="currentColor"/>',
+};
+
+const incidentElement = (incident: TrafficIncident) => {
+  const el = document.createElement('div');
+  el.dataset.incident = incident.id;
+  el.dataset.severity = isSevere(incident) ? 'severe' : incident.kind === 'works' ? 'works' : 'moderate';
+  el.className = 'zoque-incident cursor-pointer';
+  el.setAttribute('role', 'button');
+  el.setAttribute('tabindex', '0');
+  el.setAttribute('aria-label', `${incidentTitle(incident)}${incident.from ? ` cerca de ${incident.from}` : ''}`);
+  el.innerHTML = `<span class="zoque-incident-pulse"></span><span class="zoque-incident-badge"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${INCIDENT_ICON[incident.kind]}</svg></span>`;
+  return el;
+};
 
 const vanElement = (trip: Trip) => {
   const el = document.createElement('div');
@@ -134,10 +167,13 @@ const vanElement = (trip: Trip) => {
   );
   const ring = document.createElement('span');
   ring.className = 'zoque-van-ring';
+  const alert = document.createElement('span');
+  alert.className = 'zoque-van-alert';
+  alert.textContent = '!';
   const inner = document.createElement('div');
   inner.className = 'zoque-van-body';
   inner.innerHTML = VAN_SVG;
-  el.append(ring, inner);
+  el.append(ring, inner, alert);
   return { el, inner };
 };
 
@@ -151,6 +187,14 @@ export function CoverageMap({
   follow,
   reducedMotion,
   viewResetKey,
+  delays,
+  incidents,
+  selectedIncident,
+  focus,
+  onIncidentSelect,
+  showFlow,
+  showIncidentTiles,
+  baseMap,
   onTownHover,
   onTripHover,
   onTripSelect,
@@ -162,13 +206,15 @@ export function CoverageMap({
   const markerClassRef = useRef<typeof Marker | null>(null);
   const townMarkers = useRef(new Map<string, HTMLElement>());
   const vanMarkers = useRef(new Map<string, VanEntry>());
-  const callbacks = useRef({ onTownHover, onTripHover, onTripSelect, onFollowChange });
-  const live = useRef({ paths, clock, highlightedPaths, hoveredTrip, selectedTrip, follow });
+  const callbacks = useRef({ onTownHover, onTripHover, onTripSelect, onFollowChange, onIncidentSelect });
+  const live = useRef({ paths, clock, highlightedPaths, hoveredTrip, selectedTrip, follow, delays });
+  const incidentMarkers = useRef(new Map<string, Marker>());
+  const baseLayerIds = useRef<string[]>([]);
   const initialPaths = useRef(paths);
 
   useEffect(() => {
-    callbacks.current = { onTownHover, onTripHover, onTripSelect, onFollowChange };
-    live.current = { paths, clock, highlightedPaths, hoveredTrip, selectedTrip, follow };
+    callbacks.current = { onTownHover, onTripHover, onTripSelect, onFollowChange, onIncidentSelect };
+    live.current = { paths, clock, highlightedPaths, hoveredTrip, selectedTrip, follow, delays };
   });
 
   // Crear el mapa (solo en el navegador)
@@ -208,10 +254,13 @@ export function CoverageMap({
 
       instance.on('load', () => {
         const m = instance!;
+        // Capas del mapa base propio, para poder ocultarlas al usar el mapa de TomTom
+        baseLayerIds.current = m.getStyle().layers.map((layer) => layer.id);
         m.addSource('outside-chiapas', { type: 'geojson', data: OUTSIDE_CHIAPAS });
         m.addSource('chiapas-border', { type: 'geojson', data: CHIAPAS_BORDER });
         m.addSource('routes', { type: 'geojson', data: routesGeoJSON(initialPaths.current) });
         m.addSource('trip-done', { type: 'geojson', data: EMPTY_LINE });
+        m.addSource('incidents', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
         m.addSource('trip-left', { type: 'geojson', data: EMPTY_LINE });
 
         m.addLayer({ id: 'outside-chiapas', type: 'fill', source: 'outside-chiapas', paint: { 'fill-color': '#020B06', 'fill-opacity': 0.55 } });
@@ -241,6 +290,30 @@ export function CoverageMap({
           paint: { 'line-color': '#FFFBEB', 'line-width': lineWidth, 'line-dasharray': DASH_SEQUENCE[0] },
         });
 
+        // Tramos con incidentes: rojo si es grave, amarillo si son obras, naranja en lo demás
+        const incidentColor = [
+          'case',
+          ['get', 'severe'],
+          '#EF4444',
+          ['==', ['get', 'kind'], 'works'],
+          '#FACC15',
+          '#F97316',
+        ] as never;
+        m.addLayer({
+          id: 'incidents-glow',
+          type: 'line',
+          source: 'incidents',
+          layout: lineLayout,
+          paint: { 'line-color': incidentColor, 'line-width': 18, 'line-blur': 10, 'line-opacity': 0.55 },
+        });
+        m.addLayer({
+          id: 'incidents-line',
+          type: 'line',
+          source: 'incidents',
+          layout: lineLayout,
+          paint: { 'line-color': incidentColor, 'line-width': ['interpolate', ['linear'], ['zoom'], 7, 3.5, 14, 8] as never },
+        });
+
         // Urban seleccionada: lo que ya recorrió (verde brillante) y lo que le falta (punteado)
         m.addLayer({
           id: 'trip-left',
@@ -267,7 +340,9 @@ export function CoverageMap({
         // Tocar fuera de una urban la deselecciona
         m.on('click', (e) => {
           const target = e.originalEvent.target as HTMLElement | null;
-          if (!target?.closest('[data-van]')) callbacks.current.onTripSelect(null);
+          if (target?.closest('[data-van], [data-incident]')) return;
+          callbacks.current.onTripSelect(null);
+          callbacks.current.onIncidentSelect(null);
         });
         // Si la persona mueve el mapa, la cámara deja de seguir a la urban
         m.on('dragstart', () => callbacks.current.onFollowChange(false));
@@ -289,10 +364,12 @@ export function CoverageMap({
 
     const vans = vanMarkers.current;
     const towns = townMarkers.current;
+    const incidentEls = incidentMarkers.current;
     return () => {
       cancelled = true;
       instance?.remove();
       vans.clear();
+      incidentEls.clear();
       towns.clear();
     };
   }, []);
@@ -338,8 +415,8 @@ export function CoverageMap({
   const followFrom = useRef(0);
   useEffect(() => {
     if (!map || !selectedTrip || !follow) return;
-    const { paths: currentPaths, clock: currentClock } = live.current;
-    const trip = tripsInProgress(clockMinutes(currentClock, Date.now()), currentPaths).find((t) => t.key === selectedTrip);
+    const { paths: currentPaths, clock: currentClock, delays: currentDelays } = live.current;
+    const trip = tripsInProgress(clockMinutes(currentClock, Date.now()), currentPaths, currentDelays).find((t) => t.key === selectedTrip);
     if (!trip) return;
     const { lngLat } = pointAlong(trip.path, trip.progress, trip.forward);
     const duration = reducedMotion ? 0 : 1400;
@@ -369,9 +446,16 @@ export function CoverageMap({
     const update = (time: number) => {
       frame = 0;
       if (!visible) return;
-      const { paths: currentPaths, clock: currentClock, highlightedPaths: hp, hoveredTrip: hovered, selectedTrip: selected, follow: following } =
-        live.current;
-      const trips = tripsInProgress(clockMinutes(currentClock, Date.now()), currentPaths);
+      const {
+        paths: currentPaths,
+        clock: currentClock,
+        highlightedPaths: hp,
+        hoveredTrip: hovered,
+        selectedTrip: selected,
+        follow: following,
+        delays: currentDelays,
+      } = live.current;
+      const trips = tripsInProgress(clockMinutes(currentClock, Date.now()), currentPaths, currentDelays);
       const seen = new Set<string>();
       let selectedTripNow: Trip | undefined;
 
@@ -390,7 +474,13 @@ export function CoverageMap({
               callbacks.current.onTripSelect(trip.key);
             }
           });
-          entry = { marker: new MarkerClass({ element: el, anchor: 'bottom' }).setLngLat(lngLat).addTo(map), inner, facingRight: null, look: '' };
+          entry = {
+            marker: new MarkerClass({ element: el, anchor: 'bottom' }).setLngLat(lngLat).addTo(map),
+            inner,
+            facingRight: null,
+            look: '',
+            held: false,
+          };
           current.set(trip.key, entry);
         }
         entry.marker.setLngLat(lngLat);
@@ -405,6 +495,12 @@ export function CoverageMap({
         const pathOn = !hp || hp.includes(trip.path.key);
         const dimmed = selected ? !isSelected : !pathOn || (hovered !== null && hovered !== trip.key);
         const look = isSelected ? 'selected' : dimmed ? 'dimmed' : 'normal';
+        // Detenida por un incidente: aviso rojo sobre la urban
+        const held = trip.heldBy !== null;
+        if (entry.held !== held) {
+          entry.held = held;
+          entry.marker.getElement().dataset.held = held ? 'true' : 'false';
+        }
         if (entry.look !== look) {
           entry.look = look;
           const el = entry.marker.getElement();
@@ -458,6 +554,103 @@ export function CoverageMap({
     if (!map || viewResetKey === 0) return;
     map.fitBounds(TOWNS_BOUNDS, { padding: fitPadding(map.getContainer().clientWidth), ...VIEW, duration: reducedMotion ? 0 : 1200 });
   }, [map, viewResetKey, reducedMotion]);
+
+  // Mosaicos de TomTom vía nuestro servidor: mapa base hasta abajo; tráfico e incidentes bajo nuestras rutas
+  useEffect(() => {
+    if (!map) return;
+    const tileUrl = (layer: string, version = '') =>
+      `${window.location.origin}/api/traffic/tiles/${layer}/{z}/{x}/{y}${version ? `?v=${version}` : ''}`;
+    const ensure = (id: string, layer: string, visible: boolean, before: string, paint: Record<string, number>) => {
+      if (visible && !map.getSource(id)) {
+        map.addSource(id, { type: 'raster', tiles: [tileUrl(layer)], tileSize: 512, minzoom: 5, maxzoom: 17, attribution: '© TomTom' });
+        map.addLayer({ id, type: 'raster', source: id, paint }, map.getLayer(before) ? before : undefined);
+      }
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+    };
+
+    const tomtomBase = baseMap === 'tomtom';
+    ensure('tomtom-base', 'map', tomtomBase, 'outside-chiapas', { 'raster-fade-duration': 200 });
+    for (const id of baseLayerIds.current) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', tomtomBase ? 'none' : 'visible');
+    }
+    ensure('traffic-incident-tiles', 'incidents', showIncidentTiles, 'routes-glow', { 'raster-opacity': 0.9, 'raster-fade-duration': 300 });
+    ensure('traffic-flow', 'flow', showFlow, map.getLayer('traffic-incident-tiles') ? 'traffic-incident-tiles' : 'routes-glow', {
+      'raster-opacity': 0.85,
+      'raster-fade-duration': 300,
+    });
+
+    // Cada 2 minutos se piden mosaicos de tráfico nuevos (el parámetro solo evita la copia guardada del navegador)
+    if (!showFlow && !showIncidentTiles) return;
+    const interval = setInterval(() => {
+      const version = String(Date.now());
+      for (const [id, layer] of [
+        ['traffic-flow', 'flow'],
+        ['traffic-incident-tiles', 'incidents'],
+      ] as const) {
+        (map.getSource(id) as { setTiles?: (tiles: string[]) => void } | undefined)?.setTiles?.([tileUrl(layer, version)]);
+      }
+    }, 120_000);
+    return () => clearInterval(interval);
+  }, [map, showFlow, showIncidentTiles, baseMap]);
+
+  // Tramos con incidentes
+  useEffect(() => {
+    if (!map) return;
+    (map.getSource('incidents') as GeoJSONSource | undefined)?.setData({
+      type: 'FeatureCollection',
+      features: incidents
+        .filter((incident) => incident.line.length > 1)
+        .map((incident) => ({
+          type: 'Feature' as const,
+          properties: { id: incident.id, kind: incident.kind, severe: isSevere(incident) },
+          geometry: { type: 'LineString' as const, coordinates: incident.line },
+        })),
+    });
+  }, [map, incidents]);
+
+  // Íconos de incidentes (se reconstruyen cuando llega un reporte nuevo)
+  useEffect(() => {
+    const MarkerClass = markerClassRef.current;
+    if (!map || !MarkerClass) return;
+    const current = incidentMarkers.current;
+    for (const incident of incidents) {
+      if (current.has(incident.id)) {
+        current.get(incident.id)!.setLngLat(incident.point);
+        continue;
+      }
+      const el = incidentElement(incident);
+      el.addEventListener('click', () => callbacks.current.onIncidentSelect(incident.id));
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          callbacks.current.onIncidentSelect(incident.id);
+        }
+      });
+      current.set(incident.id, new MarkerClass({ element: el, anchor: 'center' }).setLngLat(incident.point).addTo(map));
+    }
+    const ids = new Set(incidents.map((incident) => incident.id));
+    for (const [id, marker] of current) {
+      if (!ids.has(id)) {
+        marker.remove();
+        current.delete(id);
+      }
+    }
+  }, [map, incidents]);
+
+  useEffect(() => {
+    for (const [id, marker] of incidentMarkers.current) {
+      marker.getElement().dataset.selected = id === selectedIncident ? 'true' : 'false';
+    }
+  }, [selectedIncident, incidents]);
+
+  // Llevar la cámara a un punto (por ejemplo, un incidente elegido en la lista)
+  useEffect(() => {
+    if (!map || !focus) return;
+    onFollowChange(false);
+    map.easeTo({ center: focus.lngLat, zoom: Math.max(map.getZoom(), 12.5), duration: reducedMotion ? 0 : 1200 });
+    // Solo debe moverse cuando cambia el destino pedido
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, focus?.nonce]);
 
   const recenter = () => {
     onTripSelect(null);

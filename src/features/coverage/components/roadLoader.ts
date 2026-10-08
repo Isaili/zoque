@@ -2,7 +2,7 @@ import { OSRM_ROUTE_URL, osrmWaypoints, simplifyLine, type MapPath } from './cov
 
 type Point = [number, number];
 
-const CACHE_PREFIX = 'zoque-road:v1:';
+const CACHE_PREFIX = 'zoque-road:v2:';
 
 const readCache = (key: string): Point[] | null => {
   try {

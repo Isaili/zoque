@@ -120,3 +120,83 @@ body {
     opacity: 0.9;
   }
 }
+
+/* Urban detenida por un incidente */
+.zoque-van-alert {
+  position: absolute;
+  top: -14px;
+  right: -6px;
+  display: none;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #fff;
+  font: 800 11px/1 var(--font-sans);
+  box-shadow: 0 0 0 2px #04140b, 0 0 12px rgb(239 68 68 / 0.8);
+}
+.zoque-van[data-held='true'] .zoque-van-alert {
+  display: flex;
+  animation: zoque-alert-bounce 1.2s ease-in-out infinite;
+}
+.zoque-van[data-held='true'][data-look='normal'] {
+  filter: drop-shadow(0 0 8px rgb(239 68 68 / 0.75));
+}
+@keyframes zoque-alert-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* Íconos de incidentes en el mapa */
+.zoque-incident {
+  position: relative;
+  z-index: 20;
+  width: 0;
+  height: 0;
+}
+.zoque-incident-badge,
+.zoque-incident-pulse {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 9999px;
+}
+.zoque-incident-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  color: #fff;
+  box-shadow: 0 6px 18px -4px rgb(0 0 0 / 0.7);
+  transition: scale 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.zoque-incident[data-severity='severe'] .zoque-incident-badge { background: #dc2626; }
+.zoque-incident[data-severity='moderate'] .zoque-incident-badge { background: #ea580c; }
+.zoque-incident[data-severity='works'] .zoque-incident-badge { background: #eab308; color: #1c1917; }
+.zoque-incident:hover .zoque-incident-badge,
+.zoque-incident:focus-visible .zoque-incident-badge,
+.zoque-incident[data-selected='true'] .zoque-incident-badge {
+  scale: 1.25;
+}
+.zoque-incident:focus-visible { outline: none; }
+.zoque-incident-pulse {
+  background: rgb(239 68 68 / 0.45);
+}
+.zoque-incident[data-severity='severe'] .zoque-incident-pulse {
+  animation: zoque-incident-pulse 1.8s ease-out infinite;
+}
+@keyframes zoque-incident-pulse {
+  from { opacity: 0.8; transform: scale(0.8); }
+  to { opacity: 0; transform: scale(2.4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoque-van[data-held='true'] .zoque-van-alert,
+  .zoque-incident[data-severity='severe'] .zoque-incident-pulse {
+    animation: none;
+  }
+}

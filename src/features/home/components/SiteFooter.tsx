@@ -13,6 +13,7 @@ const LINKS = [
   { href: '#nosotros', label: 'Nosotros' },
   { href: '#cobertura', label: 'Cobertura' },
   { href: '#promociones', label: 'Promociones' },
+  { href: '#preguntas', label: 'Preguntas' },
 ];
 
 export function SiteFooter() {

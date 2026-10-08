@@ -12,6 +12,7 @@ import {
   TestimonialsSection,
   CoverageSection,
   PromotionsSection,
+  FaqSection,
   SiteFooter,
 } from '@/features/home';
 
@@ -31,6 +32,7 @@ export default function HomePage() {
         <TestimonialsSection />
         <CoverageSection />
         <PromotionsSection />
+        <FaqSection />
       </main>
       <SiteFooter />
     </MotionConfig>

@@ -45,17 +45,20 @@ export function PromotionsSection() {
         <StaggerList className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-[1.25fr_1fr_1fr] lg:gap-5" stagger={0.12}>
           {/* Estudiantes y maestros */}
           <StaggerItem className="md:col-span-2 lg:col-span-1">
-            <article className={`${cardBase} bg-zoque-700 text-white`}>
+            <article className={`${cardBase} bg-zoque-800 text-white`}>
+              <Image
+                src="/images/promociones/student.png"
+                alt="Estudiante sonriendo con sus libros"
+                fill
+                sizes="(min-width: 1024px) 40vw, (min-width: 768px) 100vw, 100vw"
+                className="-z-20 object-cover object-[35%_20%] transition-transform duration-[1.2s] ease-out group-hover:scale-105"
+              />
+              {/* Degradado de abajo hacia arriba: texto legible abajo y la estudiante visible arriba */}
               <div
                 aria-hidden
-                className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_85%_15%,rgba(200,157,85,0.35)_0%,transparent_45%),radial-gradient(circle_at_0%_100%,rgba(31,107,66,0.8)_0%,transparent_55%)]"
+                className="absolute inset-0 -z-10 bg-gradient-to-t from-zoque-900 via-zoque-900/75 via-45% to-transparent"
               />
-              <GraduationCap
-                aria-hidden
-                strokeWidth={1}
-                className="absolute -bottom-8 -right-6 -z-10 h-56 w-56 text-white/[0.07] transition-transform duration-700 group-hover:-rotate-6 group-hover:scale-105"
-              />
-              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-gold/15 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-gold ring-1 ring-gold/30">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-zoque-900/75 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-white ring-1 ring-white/30 backdrop-blur-sm">
                 <GraduationCap className="h-3.5 w-3.5" aria-hidden />
                 Estudiantes y maestros
               </span>

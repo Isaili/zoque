@@ -16,7 +16,9 @@ import {
 } from './coverageData';
 import { loadMissingRoads } from './roadLoader';
 import { SIM_END, SIM_START, clockMinutes, simClock, type Clock } from './clock';
-import { EmptyState, MapStatusPill, TimeControls, TripCard, TripsStrip } from './LiveTripsPanel';
+import { EmptyState, IncidentCard, type MapOptions, MapStatusPill, RoadStatus, TimeControls, TripCard, TripsStrip } from './LiveTripsPanel';
+import { useDelays, useTrafficReport } from './useTraffic';
+import type { TrafficIncident } from './traffic';
 import { CountUp } from '@/components/ui/CountUp';
 import { Reveal } from '@/components/ui/Reveal';
 import { SectionHeading } from '@/components/ui/SectionHeading';
@@ -41,6 +43,8 @@ const subscribeTick = (onChange: () => void) => {
 const getTick = () => Math.floor(Date.now() / TICK_MS);
 
 // Caminos ordenados por número de corridas, para la lista
+const NO_INCIDENTS: TrafficIncident[] = [];
+
 const PATHS_BY_RUNS = [...MAP_PATHS].sort((a, b) => runsOn(b) - runsOn(a));
 
 const endpoints = (path: MapPath) => {
@@ -60,6 +64,12 @@ export const CoverageSection = () => {
   const [follow, setFollow] = useState(true);
   const [clock, setClock] = useState<Clock>({ mode: 'live' });
   const [viewResetKey, setViewResetKey] = useState(0);
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
+  const [focus, setFocus] = useState<{ lngLat: [number, number]; nonce: number } | null>(null);
+  const traffic = useTrafficReport();
+  const [mapOptions, setMapOptions] = useState<MapOptions>({ flow: true, incidentTiles: true, baseMap: 'zoque' });
+  const layers = traffic.enabled ? traffic.layers : { flow: false, incidents: false, map: false };
+  const incidents = traffic.enabled ? traffic.incidents : NO_INCIDENTS;
   const [paths, setPaths] = useState(MAP_PATHS);
 
   // Cambiar las curvas aproximadas por el trazado real de las carreteras
@@ -73,7 +83,9 @@ export const CoverageSection = () => {
   }, []);
   const tick = useSyncExternalStore(subscribeTick, getTick, () => null);
   const nowMin = tick === null ? null : clockMinutes(clock, tick * TICK_MS);
-  const trips = nowMin === null ? [] : tripsInProgress(nowMin, paths);
+  const delays = useDelays(incidents, paths);
+  const trips = nowMin === null ? [] : tripsInProgress(nowMin, paths, delays);
+  const selectedIncident = incidents.find((incident) => incident.id === selectedIncidentId);
 
   const selectedTrip = trips.find((trip) => trip.key === selectedTripKey);
   const hoveredTrip = trips.find((trip) => trip.key === hoveredTripKey);
@@ -81,7 +93,18 @@ export const CoverageSection = () => {
 
   const selectTrip = (key: string | null) => {
     setSelectedTripKey(key);
-    if (key) setFollow(true);
+    if (key) {
+      setFollow(true);
+      setSelectedIncidentId(null);
+    }
+  };
+  const selectIncident = (id: string | null) => {
+    setSelectedIncidentId(id);
+    if (id) setSelectedTripKey(null);
+  };
+  const focusIncident = (incident: TrafficIncident) => {
+    selectIncident(incident.id);
+    setFocus({ lngLat: incident.point, nonce: Date.now() });
   };
   const goLive = () => {
     setClock({ mode: 'live' });
@@ -229,17 +252,28 @@ export const CoverageSection = () => {
               follow={follow}
               reducedMotion={reducedMotion}
               viewResetKey={viewResetKey}
+              delays={delays}
+              incidents={incidents}
+              selectedIncident={selectedIncident ? selectedIncident.id : null}
+              focus={focus}
+              onIncidentSelect={selectIncident}
+              showFlow={layers.flow && mapOptions.flow}
+              showIncidentTiles={layers.incidents && mapOptions.incidentTiles}
+              baseMap={layers.map ? mapOptions.baseMap : 'zoque'}
               onTownHover={setActiveTown}
               onTripHover={setHoveredTripKey}
               onTripSelect={selectTrip}
               onFollowChange={setFollow}
             />
 
-            <MapStatusPill clock={clock} nowMin={nowMin} count={trips.length} />
+            <MapStatusPill clock={clock} nowMin={nowMin} count={trips.length} incidents={incidents.length} />
 
-            {nowMin !== null && cardTrip ? (
+            {selectedIncident && !selectedTrip ? (
+              <IncidentCard incident={selectedIncident} onClose={() => setSelectedIncidentId(null)} />
+            ) : nowMin !== null && cardTrip ? (
               <TripCard
                 trip={cardTrip}
+                incidents={incidents}
                 nowMin={nowMin}
                 selected={cardTrip === selectedTrip}
                 follow={follow}
@@ -283,6 +317,18 @@ export const CoverageSection = () => {
                 selectedTrip={selectedTrip ? selectedTrip.key : null}
                 onSelect={selectTrip}
                 onHover={setHoveredTripKey}
+              />
+            )}
+            {traffic.enabled && (
+              <RoadStatus
+                incidents={incidents}
+                updatedAt={traffic.updatedAt}
+                demo={traffic.demo}
+                selectedIncident={selectedIncident ? selectedIncident.id : null}
+                onSelect={focusIncident}
+                layers={layers}
+                options={mapOptions}
+                onOptionsChange={setMapOptions}
               />
             )}
           </div>

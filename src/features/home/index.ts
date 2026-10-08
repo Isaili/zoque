@@ -12,4 +12,5 @@ export { HowToBuySection } from '../how-to-buy';
 export { TestimonialsSection } from '../testimonials';
 export { CoverageSection } from '../coverage';
 export { PromotionsSection } from '../promotions';
+export { FaqSection } from '../faq';
 // ... las demás exportaciones

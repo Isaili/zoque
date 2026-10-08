@@ -13,7 +13,8 @@ export interface Town {
 // Cabeceras municipales (coordenadas verificadas dentro de su municipio con los límites de INEGI)
 export const TOWNS: Town[] = [
   { name: 'Copainalá', lon: -93.2125, lat: 17.0939, chip: 'below', hub: true },
-  { name: 'Tuxtla Gutiérrez', lon: -93.1156, lat: 16.7531, chip: 'below' },
+  // En Tuxtla la terminal está en el Mercado de los Ancianos (Av. 9a Sur Oriente)
+  { name: 'Tuxtla Gutiérrez', lon: -93.10539, lat: 16.74427, chip: 'below' },
   { name: 'Coapilla', lon: -93.1667, lat: 17.1333, chip: 'right' },
   { name: 'Ocotepec', lon: -93.1636, lat: 17.2253, chip: 'right' },
   { name: 'Tecpatán', lon: -93.3167, lat: 17.1333, chip: 'left' },
@@ -24,6 +25,39 @@ export const TOWNS: Town[] = [
 // Puntos de paso (sin parada) para que el trazo siga la carretera real
 const WAYPOINTS: Record<string, [number, number]> = {
   Ocozocoautla: [-93.3747, 16.7597],
+  // Calles por las que salen las unidades de Tuxtla (ubicadas con OpenStreetMap)
+  'Tuxtla: Terminal de paso': [-93.12026, 16.74591], // Calle 3a Poniente Sur 1083
+  'Tuxtla: Av. 9a Sur Poniente': [-93.12313, 16.74705],
+  'Tuxtla: Blvd. Belisario Domínguez poniente': [-93.17787, 16.76069],
+  'Tuxtla: Periférico Norte Pte. (Parque Caña Hueca)': [-93.14609, 16.76008],
+  'Tuxtla: Blvd. Los Laguitos': [-93.15192, 16.76208],
+  'Tuxtla: Blvd. Los Laguitos norte': [-93.17293, 16.7835],
+};
+
+// Recorrido dentro de Tuxtla, de la terminal (Mercado de los Ancianos) hacia la salida. Todas pasan por la
+// terminal de paso y siguen por la 9a Sur hasta el Belisario Domínguez a la altura del Hotel Marriott; las de
+// Malpaso y Ostuacán siguen por el Belisario Domínguez hasta salir por La Pochota, y las de Copainalá,
+// Coapilla, Tecpatán y Ocotepec suben por el Periférico junto al Parque Caña Hueca y salen por Los Laguitos.
+// (No hay punto en el Marriott: el trazo pasa solo por ese cruce y un punto ahí lo desviaba al estacionamiento.)
+const TUXTLA_TO_MARRIOTT = ['Tuxtla: Terminal de paso', 'Tuxtla: Av. 9a Sur Poniente'];
+const TUXTLA_EXIT: Record<'poniente' | 'norte', string[]> = {
+  poniente: [...TUXTLA_TO_MARRIOTT, 'Tuxtla: Blvd. Belisario Domínguez poniente'],
+  norte: [
+    ...TUXTLA_TO_MARRIOTT,
+    'Tuxtla: Periférico Norte Pte. (Parque Caña Hueca)',
+    'Tuxtla: Blvd. Los Laguitos',
+    'Tuxtla: Blvd. Los Laguitos norte',
+  ],
+};
+const WEST_TOWNS = new Set(['Raudales Malpaso', 'Ostuacán']);
+const TUXTLA = 'Tuxtla Gutiérrez';
+
+// Inserta las calles de Tuxtla junto a la terminal, en el orden del viaje
+const withTuxtlaStreets = (sequence: string[]) => {
+  const exit = TUXTLA_EXIT[sequence.some((name) => WEST_TOWNS.has(name)) ? 'poniente' : 'norte'];
+  if (sequence[0] === TUXTLA) return [TUXTLA, ...exit, ...sequence.slice(1)];
+  if (sequence[sequence.length - 1] === TUXTLA) return [...sequence.slice(0, -1), ...[...exit].reverse(), TUXTLA];
+  return sequence;
 };
 
 // Escalas de cada corrida entre su origen y destino (por id de ruta de la lista de horarios)
@@ -110,6 +144,7 @@ const samplePolyline = (lonLats: Point[]) => {
 export interface MapPath {
   key: string;
   stops: string[]; // localidades por las que pasa (sin puntos de paso)
+  waypoints: Point[]; // localidades y puntos de paso en orden, para trazar por las calles reales
   coordinates: Point[]; // trazo en [longitud, latitud]
   routes: RouteItem[]; // corridas que usan este camino, en cualquier sentido
   forward: boolean; // hay corridas en el sentido del trazo
@@ -128,11 +163,7 @@ export const withRoad = (path: MapPath, road: Point[]): MapPath => ({
 });
 
 // Paradas del camino en el formato del servicio de rutas OSRM ("lon,lat;lon,lat")
-export const osrmWaypoints = (path: MapPath) =>
-  path.stops
-    .map((name) => townByName.get(name)!)
-    .map((town) => `${town.lon},${town.lat}`)
-    .join(';');
+export const osrmWaypoints = (path: MapPath) => path.waypoints.map(([lon, lat]) => `${lon},${lat}`).join(';');
 
 export const OSRM_ROUTE_URL = 'https://router.project-osrm.org/route/v1/driving/';
 
@@ -156,13 +187,14 @@ export const MAP_PATHS: MapPath[] = (() => {
     const forward = sequence.join('>') <= reversed.join('>');
     const canonical = forward ? sequence : reversed;
     const key = canonical.join('>');
-    const points = canonical.map(pointOf) as Point[];
+    const points = withTuxtlaStreets(canonical).map(pointOf) as Point[];
     const samples = sampleCurve(points);
     const path =
       paths.get(key) ??
       {
         key,
         stops: canonical.filter((name) => townByName.has(name)),
+        waypoints: points,
         coordinates: samples.map(({ x, y }) => toLonLat([x, y])),
         routes: [],
         forward: false,
