@@ -10,6 +10,7 @@
     "trace-routes": "npx --yes tsx scripts/trace-routes.ts"
   },
   "dependencies": {
+    "framer-motion": "^14.0.0",
     "lucide-react": "^1.47.0",
     "maplibre-gl": "^5.24.0",
     "next": "16.3.5",

@@ -1,17 +1,46 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --font-serif: Georgia, "Times New Roman", serif;
-  --font-merriweather: Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: var(--font-playfair), Georgia, "Times New Roman", serif;
+  --font-merriweather: var(--font-playfair), Georgia, "Times New Roman", serif;
+
+  /* Paleta de marca */
+  --color-zoque-900: #06180F;
+  --color-zoque-800: #0A2C1A;
+  --color-zoque-700: #0D3B23;
+  --color-zoque-600: #164A2F;
+  --color-zoque-500: #2A4822;
+  --color-gold: #C89D55;
+  --color-gold-dark: #A9813F;
+  --color-cream: #F5F2EB;
+  --color-sand: #F8F5EF;
+
+  --animate-marquee: marquee 40s linear infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 html {
   scroll-behavior: smooth;
+  /* Las anclas no quedan debajo del navbar fijo */
+  scroll-padding-top: 5rem;
 }
 
 body {
   font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-marquee {
+    animation: none;
+  }
 }
 
 /* Controles del mapa de cobertura con el estilo oscuro de la sección */
@@ -39,4 +68,55 @@ body {
   background: rgb(2 11 6 / 0.6);
   color: #fef3c7;
   font-size: 0.875rem;
+}
+
+/* Urbans del mapa de cobertura */
+.zoque-van {
+  position: relative;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+.zoque-van-body {
+  transform-origin: 50% 100%;
+  transition: scale 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.zoque-van:hover .zoque-van-body,
+.zoque-van:focus-visible .zoque-van-body {
+  scale: 1.2;
+}
+.zoque-van:focus-visible {
+  outline: none;
+}
+.zoque-van[data-look='dimmed'] {
+  opacity: 0.25;
+}
+.zoque-van[data-look='selected'] {
+  filter: drop-shadow(0 0 10px rgb(110 231 183 / 0.8));
+}
+.zoque-van[data-look='selected'] .zoque-van-body {
+  scale: 1.45;
+}
+.zoque-van-ring {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 44px;
+  height: 14px;
+  margin-left: -22px;
+  border-radius: 9999px;
+  border: 2px solid rgb(110 231 183 / 0.9);
+  opacity: 0;
+  pointer-events: none;
+}
+.zoque-van[data-look='selected'] .zoque-van-ring {
+  animation: zoque-van-ping 1.6s ease-out infinite;
+}
+@keyframes zoque-van-ping {
+  from { opacity: 0.9; transform: scale(0.6); }
+  to { opacity: 0; transform: scale(1.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoque-van[data-look='selected'] .zoque-van-ring {
+    animation: none;
+    opacity: 0.9;
+  }
 }

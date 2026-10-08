@@ -4,18 +4,25 @@ import { useEffect, useRef, useState } from 'react';
 import type { GeoJSONSource, Map as MapLibreMap, Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { CHIAPAS_OUTLINE } from './chiapasGeo';
-import { TOWNS, TOWNS_BOUNDS, pointAlong, type MapPath, type Trip } from './coverageData';
+import { TOWNS, TOWNS_BOUNDS, pointAlong, splitTrip, tripsInProgress, type MapPath, type Trip } from './coverageData';
+import { clockMinutes, type Clock } from './clock';
+import { formatTime12 } from '../../schedules/components/schedulesData';
 import { buildMapStyle } from './mapStyle';
 
 interface CoverageMapProps {
   paths: MapPath[];
-  trips: Trip[];
+  clock: Clock;
   highlightedPaths: string[] | null; // null = todas resaltadas
   highlightedTowns: string[] | null;
-  activeTrip: string | null;
+  hoveredTrip: string | null;
+  selectedTrip: string | null;
+  follow: boolean;
   reducedMotion: boolean;
+  viewResetKey: number; // al cambiar, vuelve a mostrar todas las rutas
   onTownHover: (town: string | null) => void;
   onTripHover: (trip: string | null) => void;
+  onTripSelect: (trip: string | null) => void;
+  onFollowChange: (follow: boolean) => void;
 }
 
 const VIEW = { pitch: 52, bearing: -14 };
@@ -105,27 +112,63 @@ const townElement = (town: (typeof TOWNS)[number]) => {
   return el;
 };
 
+const EMPTY_LINE = { type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: [] as number[][] } };
+const line = (coordinates: number[][]) => ({ ...EMPTY_LINE, geometry: { ...EMPTY_LINE.geometry, coordinates } });
+
+interface VanEntry {
+  marker: Marker;
+  inner: HTMLElement;
+  facingRight: boolean | null;
+  look: string;
+}
+
+const vanElement = (trip: Trip) => {
+  const el = document.createElement('div');
+  el.dataset.van = trip.key;
+  el.className = 'zoque-van cursor-pointer';
+  el.setAttribute('role', 'button');
+  el.setAttribute('tabindex', '0');
+  el.setAttribute(
+    'aria-label',
+    `Urban ${trip.route.from} a ${trip.route.to}, salió ${formatTime12(trip.departure)}, llega ${formatTime12(trip.arrival)}`,
+  );
+  const ring = document.createElement('span');
+  ring.className = 'zoque-van-ring';
+  const inner = document.createElement('div');
+  inner.className = 'zoque-van-body';
+  inner.innerHTML = VAN_SVG;
+  el.append(ring, inner);
+  return { el, inner };
+};
+
 export function CoverageMap({
   paths,
-  trips,
+  clock,
   highlightedPaths,
   highlightedTowns,
-  activeTrip,
+  hoveredTrip,
+  selectedTrip,
+  follow,
   reducedMotion,
+  viewResetKey,
   onTownHover,
   onTripHover,
+  onTripSelect,
+  onFollowChange,
 }: CoverageMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapLibreMap | null>(null);
   const [failed, setFailed] = useState(false);
   const markerClassRef = useRef<typeof Marker | null>(null);
   const townMarkers = useRef(new Map<string, HTMLElement>());
-  const vanMarkers = useRef(new Map<string, { marker: Marker; inner: HTMLElement }>());
-  const callbacks = useRef({ onTownHover, onTripHover });
+  const vanMarkers = useRef(new Map<string, VanEntry>());
+  const callbacks = useRef({ onTownHover, onTripHover, onTripSelect, onFollowChange });
+  const live = useRef({ paths, clock, highlightedPaths, hoveredTrip, selectedTrip, follow });
   const initialPaths = useRef(paths);
 
   useEffect(() => {
-    callbacks.current = { onTownHover, onTripHover };
+    callbacks.current = { onTownHover, onTripHover, onTripSelect, onFollowChange };
+    live.current = { paths, clock, highlightedPaths, hoveredTrip, selectedTrip, follow };
   });
 
   // Crear el mapa (solo en el navegador)
@@ -168,6 +211,8 @@ export function CoverageMap({
         m.addSource('outside-chiapas', { type: 'geojson', data: OUTSIDE_CHIAPAS });
         m.addSource('chiapas-border', { type: 'geojson', data: CHIAPAS_BORDER });
         m.addSource('routes', { type: 'geojson', data: routesGeoJSON(initialPaths.current) });
+        m.addSource('trip-done', { type: 'geojson', data: EMPTY_LINE });
+        m.addSource('trip-left', { type: 'geojson', data: EMPTY_LINE });
 
         m.addLayer({ id: 'outside-chiapas', type: 'fill', source: 'outside-chiapas', paint: { 'fill-color': '#020B06', 'fill-opacity': 0.55 } });
         m.addLayer({
@@ -179,6 +224,7 @@ export function CoverageMap({
         m.addLayer({ id: 'chiapas-border', type: 'line', source: 'chiapas-border', paint: { 'line-color': '#FDE68A', 'line-width': 1.3, 'line-opacity': 0.6 } });
 
         const lineLayout = { 'line-cap': 'round' as const, 'line-join': 'round' as const };
+        const lineWidth = ['interpolate', ['linear'], ['zoom'], 7, 2.2, 14, 5] as never;
         m.addLayer({
           id: 'routes-glow',
           type: 'line',
@@ -186,24 +232,46 @@ export function CoverageMap({
           layout: lineLayout,
           paint: { 'line-color': '#FCD34D', 'line-width': 12, 'line-blur': 8, 'line-opacity': 0.4 },
         });
-        m.addLayer({
-          id: 'routes-core',
-          type: 'line',
-          source: 'routes',
-          layout: lineLayout,
-          paint: { 'line-color': '#FCD34D', 'line-width': ['interpolate', ['linear'], ['zoom'], 7, 2.2, 14, 5] },
-        });
+        m.addLayer({ id: 'routes-core', type: 'line', source: 'routes', layout: lineLayout, paint: { 'line-color': '#FCD34D', 'line-width': lineWidth } });
         m.addLayer({
           id: 'routes-flow',
           type: 'line',
           source: 'routes',
           layout: lineLayout,
-          paint: {
-            'line-color': '#FFFBEB',
-            'line-width': ['interpolate', ['linear'], ['zoom'], 7, 2.2, 14, 5],
-            'line-dasharray': DASH_SEQUENCE[0],
-          },
+          paint: { 'line-color': '#FFFBEB', 'line-width': lineWidth, 'line-dasharray': DASH_SEQUENCE[0] },
         });
+
+        // Urban seleccionada: lo que ya recorrió (verde brillante) y lo que le falta (punteado)
+        m.addLayer({
+          id: 'trip-left',
+          type: 'line',
+          source: 'trip-left',
+          layout: { 'line-cap': 'round' },
+          paint: { 'line-color': '#FFFBEB', 'line-width': ['interpolate', ['linear'], ['zoom'], 7, 2.5, 14, 6], 'line-dasharray': [0.5, 2], 'line-opacity': 0.9 },
+        });
+        m.addLayer({
+          id: 'trip-done-glow',
+          type: 'line',
+          source: 'trip-done',
+          layout: lineLayout,
+          paint: { 'line-color': '#34D399', 'line-width': 16, 'line-blur': 10, 'line-opacity': 0.55 },
+        });
+        m.addLayer({
+          id: 'trip-done',
+          type: 'line',
+          source: 'trip-done',
+          layout: lineLayout,
+          paint: { 'line-color': '#6EE7B7', 'line-width': ['interpolate', ['linear'], ['zoom'], 7, 3.5, 14, 7] },
+        });
+
+        // Tocar fuera de una urban la deselecciona
+        m.on('click', (e) => {
+          const target = e.originalEvent.target as HTMLElement | null;
+          if (!target?.closest('[data-van]')) callbacks.current.onTripSelect(null);
+        });
+        // Si la persona mueve el mapa, la cámara deja de seguir a la urban
+        m.on('dragstart', () => callbacks.current.onFollowChange(false));
+
         if (!cancelled) setMap(m);
       });
 
@@ -266,44 +334,135 @@ export function CoverageMap({
     }
   }, [map, highlightedPaths, highlightedTowns]);
 
-  // Urbans en camino: crear, mover y quitar según la hora
+  // Al elegir una urban, la cámara vuela hacia ella; luego la sigue cuadro por cuadro
+  const followFrom = useRef(0);
+  useEffect(() => {
+    if (!map || !selectedTrip || !follow) return;
+    const { paths: currentPaths, clock: currentClock } = live.current;
+    const trip = tripsInProgress(clockMinutes(currentClock, Date.now()), currentPaths).find((t) => t.key === selectedTrip);
+    if (!trip) return;
+    const { lngLat } = pointAlong(trip.path, trip.progress, trip.forward);
+    const duration = reducedMotion ? 0 : 1400;
+    // La urban queda centrada en la parte del mapa que no tapa la tarjeta de detalle
+    const narrow = map.getContainer().clientWidth < 640;
+    const padding = narrow ? { top: 0, right: 0, bottom: 190, left: 0 } : { top: 0, right: 0, bottom: 0, left: 330 };
+    map.easeTo({ center: lngLat, zoom: Math.max(map.getZoom(), 11.2), pitch: 55, padding, duration });
+    followFrom.current = performance.now() + duration;
+  }, [map, selectedTrip, follow, reducedMotion]);
+
+  // Sin urban elegida, el mapa vuelve a usar todo su espacio
+  useEffect(() => {
+    if (!map || selectedTrip) return;
+    map.easeTo({ padding: { top: 0, right: 0, bottom: 0, left: 0 }, duration: reducedMotion ? 0 : 600 });
+  }, [map, selectedTrip, reducedMotion]);
+
+  // Urbans en camino: se calculan y mueven en cada cuadro para un movimiento continuo
   useEffect(() => {
     const MarkerClass = markerClassRef.current;
     if (!map || !MarkerClass) return;
     const current = vanMarkers.current;
-    const seen = new Set<string>();
+    let frame = 0;
+    let visible = true;
+    let lastTrail = 0;
+    let trailKey: string | null = null;
 
-    for (const trip of trips) {
-      seen.add(trip.key);
-      const { lngLat, facingRight } = pointAlong(trip.path, trip.progress, trip.forward);
-      let entry = current.get(trip.key);
-      if (!entry) {
-        const el = document.createElement('div');
-        el.className = 'cursor-pointer transition-opacity duration-300';
-        const inner = document.createElement('div');
-        inner.innerHTML = VAN_SVG;
-        el.appendChild(inner);
-        el.addEventListener('mouseenter', () => callbacks.current.onTripHover(trip.key));
-        el.addEventListener('mouseleave', () => callbacks.current.onTripHover(null));
-        entry = { marker: new MarkerClass({ element: el, anchor: 'bottom' }).setLngLat(lngLat).addTo(map), inner };
-        current.set(trip.key, entry);
+    const update = (time: number) => {
+      frame = 0;
+      if (!visible) return;
+      const { paths: currentPaths, clock: currentClock, highlightedPaths: hp, hoveredTrip: hovered, selectedTrip: selected, follow: following } =
+        live.current;
+      const trips = tripsInProgress(clockMinutes(currentClock, Date.now()), currentPaths);
+      const seen = new Set<string>();
+      let selectedTripNow: Trip | undefined;
+
+      for (const trip of trips) {
+        seen.add(trip.key);
+        const { lngLat, facingRight } = pointAlong(trip.path, trip.progress, trip.forward);
+        let entry = current.get(trip.key);
+        if (!entry) {
+          const { el, inner } = vanElement(trip);
+          el.addEventListener('mouseenter', () => callbacks.current.onTripHover(trip.key));
+          el.addEventListener('mouseleave', () => callbacks.current.onTripHover(null));
+          el.addEventListener('click', () => callbacks.current.onTripSelect(trip.key));
+          el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              callbacks.current.onTripSelect(trip.key);
+            }
+          });
+          entry = { marker: new MarkerClass({ element: el, anchor: 'bottom' }).setLngLat(lngLat).addTo(map), inner, facingRight: null, look: '' };
+          current.set(trip.key, entry);
+        }
+        entry.marker.setLngLat(lngLat);
+        if (entry.facingRight !== facingRight) {
+          entry.facingRight = facingRight;
+          entry.inner.style.setProperty('transform', facingRight ? 'none' : 'scaleX(-1)');
+        }
+
+        // Aspecto: seleccionada, atenuada o normal (solo se toca el DOM cuando cambia)
+        const isSelected = selected === trip.key;
+        if (isSelected) selectedTripNow = trip;
+        const pathOn = !hp || hp.includes(trip.path.key);
+        const dimmed = selected ? !isSelected : !pathOn || (hovered !== null && hovered !== trip.key);
+        const look = isSelected ? 'selected' : dimmed ? 'dimmed' : 'normal';
+        if (entry.look !== look) {
+          entry.look = look;
+          const el = entry.marker.getElement();
+          el.dataset.look = look;
+          el.style.zIndex = isSelected ? '30' : '';
+        }
       }
-      entry.marker.setLngLat(lngLat);
-      entry.inner.style.setProperty('transform', facingRight ? 'none' : 'scaleX(-1)');
-      const pathOn = !highlightedPaths || highlightedPaths.includes(trip.path.key);
-      entry.marker.getElement().style.setProperty('opacity', pathOn && (!activeTrip || activeTrip === trip.key) ? '1' : '0.25');
-    }
 
-    for (const [key, entry] of current) {
-      if (!seen.has(key)) {
-        entry.marker.remove();
-        current.delete(key);
+      for (const [key, entry] of current) {
+        if (!seen.has(key)) {
+          entry.marker.remove();
+          current.delete(key);
+        }
       }
-    }
-  }, [map, trips, highlightedPaths, activeTrip]);
 
-  const recenter = () =>
+      // Trazo recorrido de la urban seleccionada (unas 5 veces por segundo basta)
+      if (selectedTripNow && (time - lastTrail > 200 || trailKey !== selectedTripNow.key)) {
+        lastTrail = time;
+        trailKey = selectedTripNow.key;
+        const { done, left } = splitTrip(selectedTripNow);
+        (map.getSource('trip-done') as GeoJSONSource | undefined)?.setData(line(done));
+        (map.getSource('trip-left') as GeoJSONSource | undefined)?.setData(line(left));
+      } else if (!selectedTripNow && trailKey !== null) {
+        trailKey = null;
+        (map.getSource('trip-done') as GeoJSONSource | undefined)?.setData(EMPTY_LINE);
+        (map.getSource('trip-left') as GeoJSONSource | undefined)?.setData(EMPTY_LINE);
+      }
+
+      if (selectedTripNow && following && time > followFrom.current) {
+        map.setCenter(pointAlong(selectedTripNow.path, selectedTripNow.progress, selectedTripNow.forward).lngLat);
+      }
+
+      frame = requestAnimationFrame(update);
+    };
+
+    // Fuera de pantalla no se anima nada
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible && !frame) frame = requestAnimationFrame(update);
+    });
+    observer.observe(map.getContainer());
+    frame = requestAnimationFrame(update);
+
+    return () => {
+      observer.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [map]);
+
+  useEffect(() => {
+    if (!map || viewResetKey === 0) return;
+    map.fitBounds(TOWNS_BOUNDS, { padding: fitPadding(map.getContainer().clientWidth), ...VIEW, duration: reducedMotion ? 0 : 1200 });
+  }, [map, viewResetKey, reducedMotion]);
+
+  const recenter = () => {
+    onTripSelect(null);
     map?.fitBounds(TOWNS_BOUNDS, { padding: fitPadding(map.getContainer().clientWidth), ...VIEW, duration: 1200 });
+  };
 
   return (
     <div className="relative h-[440px] overflow-hidden rounded-3xl border border-white/10 bg-[#0B2E1B] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] sm:h-[540px]">

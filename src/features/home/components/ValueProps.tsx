@@ -8,7 +8,7 @@ interface Feature {
 
 const features: Feature[] = [
   {
-    imageSrc: '/icons/segure.png',
+    imageSrc: '/icons/inicio/segure.png',
     title: 'SEGURIDAD',
     description: (
       <>
@@ -17,12 +17,12 @@ const features: Feature[] = [
     ),
   },
   {
-    imageSrc: '/icons/seat.png',
+    imageSrc: '/icons/inicio/seat.png',
     title: 'CONFORT',
     description: 'Un viaje placentero de principio a fin.',
   },
   {
-    imageSrc: '/icons/time.png',
+    imageSrc: '/icons/inicio/time.png',
     title: 'PUNTUALIDAD',
     description: 'Llegamos a tiempo, siempre.',
   },

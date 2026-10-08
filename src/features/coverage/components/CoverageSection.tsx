@@ -3,7 +3,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { ArrowLeftRight, ArrowRight, MoveRight } from 'lucide-react';
-import { formatTime12 } from '../../schedules/components/schedulesData';
 import { CoverageMap } from './CoverageMap';
 import {
   COVERAGE_STATS,
@@ -16,6 +15,11 @@ import {
   type MapPath,
 } from './coverageData';
 import { loadMissingRoads } from './roadLoader';
+import { SIM_END, SIM_START, clockMinutes, simClock, type Clock } from './clock';
+import { EmptyState, MapStatusPill, TimeControls, TripCard, TripsStrip } from './LiveTripsPanel';
+import { CountUp } from '@/components/ui/CountUp';
+import { Reveal } from '@/components/ui/Reveal';
+import { SectionHeading } from '@/components/ui/SectionHeading';
 
 const subscribeQuery = (query: string) => (onChange: () => void) => {
   const media = window.matchMedia(query);
@@ -28,26 +32,13 @@ const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 const subscribeMotion = subscribeQuery(REDUCED_MOTION);
 const getReducedMotion = () => window.matchMedia(REDUCED_MOTION).matches;
 
-// Reloj por segundo con la hora de Chiapas, sin importar desde dónde se vea la página.
-// En el servidor no hay hora (null) para evitar diferencias de hidratación.
-const subscribeClock = (onChange: () => void) => {
-  const interval = setInterval(onChange, 1000);
+// Reloj de la interfaz (4 veces por segundo). En el servidor no hay hora (null) para evitar diferencias de hidratación.
+const TICK_MS = 250;
+const subscribeTick = (onChange: () => void) => {
+  const interval = setInterval(onChange, TICK_MS);
   return () => clearInterval(interval);
 };
-const getSecondStamp = () => Math.floor(Date.now() / 1000);
-const chiapasClock = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'America/Mexico_City',
-  hour: 'numeric',
-  minute: 'numeric',
-  second: 'numeric',
-  hourCycle: 'h23',
-});
-const chiapasMinutes = (secondStamp: number) => {
-  const parts = Object.fromEntries(
-    chiapasClock.formatToParts(new Date(secondStamp * 1000)).map(({ type, value }) => [type, Number(value)]),
-  );
-  return parts.hour * 60 + parts.minute + parts.second / 60;
-};
+const getTick = () => Math.floor(Date.now() / TICK_MS);
 
 // Caminos ordenados por número de corridas, para la lista
 const PATHS_BY_RUNS = [...MAP_PATHS].sort((a, b) => runsOn(b) - runsOn(a));
@@ -64,7 +55,11 @@ export const CoverageSection = () => {
   const reducedMotion = useSyncExternalStore(subscribeMotion, getReducedMotion, () => true);
   const [activeTown, setActiveTown] = useState<string | null>(null);
   const [activePath, setActivePath] = useState<string | null>(null);
-  const [activeTrip, setActiveTrip] = useState<string | null>(null);
+  const [hoveredTripKey, setHoveredTripKey] = useState<string | null>(null);
+  const [selectedTripKey, setSelectedTripKey] = useState<string | null>(null);
+  const [follow, setFollow] = useState(true);
+  const [clock, setClock] = useState<Clock>({ mode: 'live' });
+  const [viewResetKey, setViewResetKey] = useState(0);
   const [paths, setPaths] = useState(MAP_PATHS);
 
   // Cambiar las curvas aproximadas por el trazado real de las carreteras
@@ -76,11 +71,42 @@ export const CoverageSection = () => {
     });
     return () => controller.abort();
   }, []);
-  const secondStamp = useSyncExternalStore(subscribeClock, getSecondStamp, () => null);
-  const nowMin = secondStamp === null ? null : chiapasMinutes(secondStamp);
+  const tick = useSyncExternalStore(subscribeTick, getTick, () => null);
+  const nowMin = tick === null ? null : clockMinutes(clock, tick * TICK_MS);
   const trips = nowMin === null ? [] : tripsInProgress(nowMin, paths);
 
-  const selectedPath = paths.find((p) => p.key === activePath);
+  const selectedTrip = trips.find((trip) => trip.key === selectedTripKey);
+  const hoveredTrip = trips.find((trip) => trip.key === hoveredTripKey);
+  const cardTrip = selectedTrip ?? hoveredTrip;
+
+  const selectTrip = (key: string | null) => {
+    setSelectedTripKey(key);
+    if (key) setFollow(true);
+  };
+  const goLive = () => {
+    setClock({ mode: 'live' });
+    setSelectedTripKey(null);
+    setViewResetKey((k) => k + 1);
+  };
+  // Empieza en la hora actual si hay corridas; si no, a las 6:00 AM
+  const simulate = () => {
+    if (clock.mode === 'sim') return;
+    const start = trips.length > 0 && nowMin !== null ? Math.max(SIM_START, Math.min(SIM_END, nowMin)) : 6 * 60;
+    setClock(simClock(start, true, Date.now()));
+    setSelectedTripKey(null);
+    setViewResetKey((k) => k + 1);
+  };
+  const togglePlay = () => {
+    if (clock.mode !== 'sim') return;
+    const now = Date.now();
+    setClock(simClock(clockMinutes(clock, now), clock.startedAt === null, now));
+  };
+  const seek = (minutes: number) => {
+    if (clock.mode !== 'sim') return;
+    setClock(simClock(minutes, clock.startedAt !== null, Date.now()));
+  };
+
+  const selectedPath = paths.find((p) => p.key === activePath) ?? selectedTrip?.path;
   const highlightedPaths = selectedPath
     ? [selectedPath.key]
     : activeTown
@@ -89,7 +115,6 @@ export const CoverageSection = () => {
   const highlightedTowns = selectedPath ? selectedPath.stops : activeTown ? [activeTown] : null;
 
   const active = TOWNS.find((town) => town.name === activeTown);
-  const hoveredTrip = trips.find((trip) => trip.key === activeTrip);
 
   return (
     <section
@@ -108,26 +133,25 @@ export const CoverageSection = () => {
       />
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
 
-      <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-6 py-14 sm:px-10 sm:py-20 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.7fr)] lg:gap-12">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 sm:px-10 sm:py-20 lg:py-24 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.7fr)] lg:gap-12">
         {/* Texto */}
         <div>
-          <p className="flex items-center gap-3 text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.25em] text-amber-200/80">
-            <span className="h-px w-8 bg-gradient-to-r from-amber-300 to-transparent" />
-            Mapa de cobertura
-          </p>
-          <h2
+          <SectionHeading
             id="cobertura-titulo"
-            className="mt-4 text-3xl font-extrabold uppercase leading-[1.05] tracking-tight sm:text-4xl md:text-5xl"
-          >
-            Conectamos
-            <span className="block bg-gradient-to-r from-amber-100 via-amber-300 to-amber-500 bg-clip-text text-transparent">
-              Chiapas
-            </span>
-          </h2>
-          <p className="mt-5 max-w-sm text-sm leading-relaxed text-emerald-50/70">
-            Rutas que conectan comunidades y acercan oportunidades.
-          </p>
+            tone="dark"
+            eyebrow="Mapa de cobertura"
+            title={
+              <>
+                Conectamos{' '}
+                <span className="bg-gradient-to-r from-amber-100 via-amber-300 to-gold bg-clip-text pr-2 text-transparent">
+                  Chiapas
+                </span>
+              </>
+            }
+            description="Rutas que conectan comunidades y acercan oportunidades."
+          />
 
+          <Reveal delay={0.1}>
           <dl className="mt-8 flex max-w-sm divide-x divide-white/10">
             {[
               { value: COVERAGE_STATS.towns, label: 'Localidades' },
@@ -136,12 +160,16 @@ export const CoverageSection = () => {
             ].map(({ value, label }) => (
               <div key={label} className="flex flex-1 flex-col-reverse px-4 first:pl-0">
                 <dt className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-50/50">{label}</dt>
-                <dd className="text-3xl font-light tabular-nums text-amber-200">{value}</dd>
+                <dd className="font-serif text-4xl italic tabular-nums text-amber-200">
+                  <CountUp value={value} />
+                </dd>
               </div>
             ))}
           </dl>
+          </Reveal>
 
           {/* Lista de rutas: al pasar el mouse se resalta en el mapa */}
+          <Reveal delay={0.15}>
           <ul className="mt-8 max-w-sm divide-y divide-white/5 rounded-2xl border border-white/10 bg-white/[0.03] p-1.5 backdrop-blur-sm">
             {PATHS_BY_RUNS.map((path) => {
               const [from, to] = endpoints(path);
@@ -175,6 +203,7 @@ export const CoverageSection = () => {
               );
             })}
           </ul>
+          </Reveal>
 
           <div className="mt-8">
             <Link
@@ -188,57 +217,43 @@ export const CoverageSection = () => {
         </div>
 
         {/* Mapa interactivo con calles, rutas y urbans en vivo */}
-        <div className="relative">
-          <CoverageMap
-            paths={paths}
-            trips={trips}
-            highlightedPaths={highlightedPaths}
-            highlightedTowns={highlightedTowns}
-            activeTrip={activeTrip}
-            reducedMotion={reducedMotion}
-            onTownHover={setActiveTown}
-            onTripHover={setActiveTrip}
-          />
+        <Reveal direction="none" duration={1.2} className="min-w-0">
+          <div className="relative">
+            <CoverageMap
+              paths={paths}
+              clock={clock}
+              highlightedPaths={highlightedPaths}
+              highlightedTowns={highlightedTowns}
+              hoveredTrip={hoveredTripKey}
+              selectedTrip={selectedTrip ? selectedTrip.key : null}
+              follow={follow}
+              reducedMotion={reducedMotion}
+              viewResetKey={viewResetKey}
+              onTownHover={setActiveTown}
+              onTripHover={setHoveredTripKey}
+              onTripSelect={selectTrip}
+              onFollowChange={setFollow}
+            />
 
-          {/* En vivo: hora de Chiapas y urbans en camino */}
-          <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-white/10 bg-[#04140B]/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-50/80 shadow-xl backdrop-blur-md">
-            <span className="relative flex h-2 w-2">
-              {!reducedMotion && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />}
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-            </span>
-            En vivo
-            <span className="tabular-nums text-amber-200">{nowMin === null ? '--:--' : formatTime12(Math.floor(nowMin))}</span>
-            <span className="hidden text-emerald-50/50 sm:inline">
-              · {trips.length} {trips.length === 1 ? 'urban' : 'urbans'} en camino
-            </span>
-          </div>
+            <MapStatusPill clock={clock} nowMin={nowMin} count={trips.length} />
 
-          {/* Información de la urban o localidad seleccionada */}
-          <div
-            aria-live="polite"
-            className={`pointer-events-none absolute bottom-3 left-3 min-w-48 rounded-2xl border border-white/10 bg-[#04140B]/85 px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 ${
-              active || hoveredTrip ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'
-            }`}
-          >
-            {hoveredTrip ? (
-              <>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200/70">En camino</p>
-                <p className="mt-0.5 text-sm font-bold text-white">
-                  {hoveredTrip.route.from} <span className="text-amber-300">→</span> {hoveredTrip.route.to}
-                </p>
-                <p className="mt-2 text-xs text-emerald-50/70">
-                  Salió {formatTime12(hoveredTrip.departure)} · Llega {formatTime12(hoveredTrip.arrival)}
-                </p>
-                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-amber-200 to-amber-400"
-                    style={{ width: `${Math.round(hoveredTrip.progress * 100)}%` }}
-                  />
-                </div>
-              </>
+            {nowMin !== null && cardTrip ? (
+              <TripCard
+                trip={cardTrip}
+                nowMin={nowMin}
+                selected={cardTrip === selectedTrip}
+                follow={follow}
+                onFollow={() => setFollow((on) => !on)}
+                onClose={() => setSelectedTripKey(null)}
+              />
+            ) : nowMin !== null && trips.length === 0 && clock.mode === 'live' ? (
+              <EmptyState nowMin={nowMin} onSimulate={simulate} />
             ) : (
               active && (
-                <>
+                <div
+                  aria-live="polite"
+                  className="pointer-events-none absolute bottom-3 left-3 min-w-48 rounded-2xl border border-white/10 bg-[#04140B]/85 px-4 py-3 shadow-2xl backdrop-blur-md"
+                >
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-200/70">
                     {active.hub ? 'Terminal' : 'Localidad'}
                   </p>
@@ -247,11 +262,31 @@ export const CoverageSection = () => {
                     <span className="text-lg font-light tabular-nums text-amber-200">{runsFrom(active.name)}</span>
                     salidas diarias
                   </p>
-                </>
+                </div>
               )
             )}
           </div>
-        </div>
+
+          <div className="mt-4 space-y-4">
+            <TimeControls
+              clock={clock}
+              nowMin={nowMin}
+              onLive={goLive}
+              onSimulate={simulate}
+              onTogglePlay={togglePlay}
+              onSeek={seek}
+            />
+            {nowMin !== null && (
+              <TripsStrip
+                trips={trips}
+                nowMin={nowMin}
+                selectedTrip={selectedTrip ? selectedTrip.key : null}
+                onSelect={selectTrip}
+                onHover={setHoveredTripKey}
+              />
+            )}
+          </div>
+        </Reveal>
       </div>
     </section>
   );

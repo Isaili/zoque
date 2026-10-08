@@ -3,8 +3,8 @@ import { MapPin } from 'lucide-react';
 export function CardLocation() {
   return (
 <div 
-className="hidden lg:flex items-start gap-3 bg-cover bg-center bg-no-repeat rounded-xl border border-[#C89D55] px-[1.625rem] py-12 w-[23.4rem] shadow-2xl text-white relative overflow-hidden"
-style={{ backgroundImage: `url('/images/iglesia2.png')` }}
+className="hidden xl:flex items-start gap-3 bg-cover bg-center bg-no-repeat rounded-xl border border-[#C89D55] px-[1.625rem] py-12 w-[23.4rem] shadow-2xl text-white relative overflow-hidden"
+style={{ backgroundImage: `url('/images/inicio/iglesia2.png')` }}
 >
 <div className="relative z-10 -mt-8 ml-1 flex items-center gap-3">
 <MapPin className="w-9 h-9 text-[#C89D55] flex-shrink-0" />

@@ -1,6 +1,10 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef } from 'react';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import { Reveal } from '@/components/ui/Reveal';
+import { SectionHeading } from '@/components/ui/SectionHeading';
 import { DestinationCard } from './DestinationCard';
 import { DestinationLegend } from './DestinationLegend';
 import { DESTINATIONS, LOOP_ITEMS } from './destinationsData';
@@ -189,33 +193,39 @@ export const DestinationsSection = () => {
   }, []);
 
   return (
-    <section className="w-full bg-gray-100/90 py-12 md:py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 items-center">
-        
+    <section id="destinos" aria-labelledby="destinos-titulo" className="w-full overflow-hidden bg-sand py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-10 lg:gap-8 items-center">
+
         {/* Columna Izquierda: Título y Botón */}
-        <div className="w-full lg:w-1/4 flex flex-col justify-between space-y-6 flex-shrink-0">
-          <div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0D3B23] tracking-tight uppercase leading-tight mb-4">
-              DESTINOS<br />QUE NOS UNEN
-            </h2>
-            <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-              Viaja a las principales ciudades y comunidades de Chiapas.
-            </p>
-          </div>
+        <div className="w-full lg:w-1/4 flex flex-col justify-between gap-8 flex-shrink-0">
+          <SectionHeading
+            id="destinos-titulo"
+            eyebrow="Destinos"
+            title={
+              <>
+                Destinos <span className="block text-gold-dark">que nos unen</span>
+              </>
+            }
+            description="Viaja a las principales ciudades y comunidades de Chiapas."
+          />
 
-          <div>
-            <button className="w-full sm:w-auto px-6 py-3 bg-[#2A4822] hover:bg-[#1E3518] text-white font-semibold text-xs sm:text-sm rounded-md transition-colors uppercase tracking-wider">
-              VER TODOS LOS DESTINOS
-            </button>
-          </div>
-
-          <DestinationLegend />
+          <Reveal delay={0.15} className="flex flex-col gap-6">
+            <Link
+              href="/horarios"
+              className="group inline-flex w-full sm:w-fit items-center justify-center gap-2 rounded-full bg-zoque-700 px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-white transition-all hover:-translate-y-0.5 hover:bg-zoque-600 hover:shadow-lg hover:shadow-zoque-900/20"
+            >
+              Ver todos los destinos
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+            </Link>
+            <DestinationLegend />
+          </Reveal>
         </div>
 
         {/* Columna Derecha: Contenedor con Scroll Horizontal infinito */}
+        <Reveal direction="left" distance={60} className="w-full lg:w-3/4 min-w-0">
         <div
           ref={scrollerRef}
-          className="w-full lg:w-3/4 overflow-x-auto pb-4 cursor-grab select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="w-full overflow-x-auto py-4 cursor-grab select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]"
         >
           {/* `relative` es clave: hace que offsetLeft de las tarjetas se mida desde el inicio del carrusel */}
           <div className="relative flex gap-4 min-w-max">
@@ -232,6 +242,7 @@ export const DestinationsSection = () => {
             })}
           </div>
         </div>
+        </Reveal>
 
       </div>
     </section>

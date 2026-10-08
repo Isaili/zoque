@@ -209,32 +209,70 @@ export const pointAlong = (path: MapPath, fraction: number, forward: boolean) =>
   };
 };
 
+// Retraso reportado en un punto del camino (fracción 0 a 1 en el sentido del trazo)
+export interface PathDelay {
+  id: string;
+  fraction: number;
+  minutes: number;
+}
+export type DelaysByPath = Record<string, PathDelay[]>;
+
 export interface Trip {
   key: string;
   route: RouteItem;
   path: MapPath;
   forward: boolean;
   departure: number; // minutos desde medianoche
-  arrival: number;
-  progress: number; // 0 al salir, 1 al llegar
+  arrival: number; // llegada estimada, incluyendo retrasos reportados
+  scheduledArrival: number; // llegada según el horario
+  progress: number; // 0 al salir, 1 al llegar (distancia recorrida)
+  delayMin: number; // retraso total estimado por incidentes en su camino
+  heldBy: string | null; // incidente donde se estima que está detenida
+  holds: { id: string; fraction: number; minutes: number }[]; // en el sentido del viaje
 }
 
+// Posición estimada: avanza según el horario y se detiene en cada incidente el tiempo de retraso reportado
+const MAX_HOLD_MIN = 120;
+const estimate = (elapsed: number, duration: number, holds: Trip['holds']) => {
+  let time = 0;
+  let fraction = 0;
+  for (const hold of holds) {
+    const travel = (hold.fraction - fraction) * duration;
+    if (elapsed <= time + travel) return { progress: fraction + (elapsed - time) / duration, heldBy: null };
+    time += travel;
+    fraction = hold.fraction;
+    if (elapsed <= time + hold.minutes) return { progress: fraction, heldBy: hold.id };
+    time += hold.minutes;
+  }
+  return { progress: Math.min(1, fraction + (elapsed - time) / duration), heldBy: null };
+};
+
 // Corridas que van en camino a la hora dada (minutos desde medianoche, con fracción de segundos)
-export const tripsInProgress = (nowMin: number, paths: MapPath[] = MAP_PATHS): Trip[] =>
+export const tripsInProgress = (nowMin: number, paths: MapPath[] = MAP_PATHS, delays: DelaysByPath = {}): Trip[] =>
   paths.flatMap((path) =>
-    path.routes.flatMap((route) =>
-      departureTimes(route.schedule)
-        .filter((departure) => nowMin >= departure && nowMin < departure + route.durationMin)
+    path.routes.flatMap((route) => {
+      const forward = path.directions[route.id];
+      const holds = (delays[path.key] ?? [])
+        .map(({ id, fraction, minutes }) => ({ id, fraction: forward ? fraction : 1 - fraction, minutes: Math.min(minutes, MAX_HOLD_MIN) }))
+        .filter((hold) => hold.minutes > 0 && hold.fraction > 0 && hold.fraction < 1)
+        .sort((a, b) => a.fraction - b.fraction);
+      const delayMin = holds.reduce((sum, hold) => sum + hold.minutes, 0);
+      const total = route.durationMin + delayMin;
+      return departureTimes(route.schedule)
+        .filter((departure) => nowMin >= departure && nowMin < departure + total)
         .map((departure) => ({
           key: `${route.id}-${departure}`,
           route,
           path,
-          forward: path.directions[route.id],
+          forward,
           departure,
-          arrival: departure + route.durationMin,
-          progress: (nowMin - departure) / route.durationMin,
-        })),
-    ),
+          arrival: departure + total,
+          scheduledArrival: departure + route.durationMin,
+          delayMin,
+          holds,
+          ...estimate(nowMin - departure, route.durationMin, holds),
+        }));
+    }),
   );
 
 // Encuadre inicial: todas las localidades con un poco de margen
@@ -242,3 +280,60 @@ export const TOWNS_BOUNDS: [Point, Point] = [
   [Math.min(...TOWNS.map((t) => t.lon)), Math.min(...TOWNS.map((t) => t.lat))],
   [Math.max(...TOWNS.map((t) => t.lon)), Math.max(...TOWNS.map((t) => t.lat))],
 ];
+
+// Fracción (0 a 1) del camino más cercana a un punto [longitud, latitud], en el sentido del trazo
+export const fractionAlong = (path: MapPath, [lon, lat]: Point) => {
+  const [tx, ty] = toPlane([lon, lat]);
+  let best = path.samples[0];
+  for (const sample of path.samples) {
+    if (Math.hypot(sample.x - tx, sample.y - ty) < Math.hypot(best.x - tx, best.y - ty)) best = sample;
+  }
+  const total = path.samples[path.samples.length - 1].len;
+  return total ? best.len / total : 0;
+};
+
+// Hora estimada en que una corrida pasa por una fracción de su viaje, contando las esperas antes de ese punto
+export const timeAtFraction = (trip: Trip, fraction: number) =>
+  trip.departure +
+  fraction * (trip.scheduledArrival - trip.departure) +
+  trip.holds.filter((hold) => hold.fraction < fraction).reduce((sum, hold) => sum + hold.minutes, 0);
+
+// Localidades por las que aún pasará una corrida, con la hora estimada (en el sentido del viaje)
+const stopFractionsCache = new WeakMap<MapPath, { name: string; fraction: number }[]>();
+const stopFractions = (path: MapPath) => {
+  const cached = stopFractionsCache.get(path);
+  if (cached) return cached;
+  const fractions = path.stops.map((name) => {
+    const town = townByName.get(name)!;
+    return { name, fraction: fractionAlong(path, [town.lon, town.lat]) };
+  });
+  stopFractionsCache.set(path, fractions);
+  return fractions;
+};
+
+export const upcomingStops = (trip: Trip) =>
+  stopFractions(trip.path)
+    .map(({ name, fraction }) => ({ name, fraction: trip.forward ? fraction : 1 - fraction }))
+    .filter(({ fraction }) => fraction > trip.progress + 0.005)
+    .sort((a, b) => a.fraction - b.fraction)
+    .map(({ name, fraction }) => ({ name, at: timeAtFraction(trip, fraction) }));
+
+// Trazo de una corrida partido en lo ya recorrido y lo que falta (ambos en el sentido del viaje)
+export const splitTrip = (trip: Trip): { done: Point[]; left: Point[] } => {
+  const { path } = trip;
+  const ordered = trip.forward ? path.coordinates : [...path.coordinates].reverse();
+  const samples = trip.forward
+    ? path.samples
+    : [...path.samples].reverse().map((s) => ({ ...s, len: path.samples[path.samples.length - 1].len - s.len }));
+  const target = trip.progress * samples[samples.length - 1].len;
+  const cut = Math.max(1, samples.findIndex((s) => s.len >= target));
+  const { lngLat } = pointAlong(path, trip.progress, trip.forward);
+  return {
+    done: [...ordered.slice(0, cut), lngLat],
+    left: [lngLat, ...ordered.slice(cut)],
+  };
+};
+
+// Primera salida a partir de la hora dada (si ya no hay, la primera del día siguiente)
+export const nextDeparture = (nowMin: number) =>
+  departures.find((d) => d.time > nowMin) ?? departures[0];

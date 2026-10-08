@@ -1,20 +1,38 @@
-import { Navbar, HeroSection, FooterBanner, AboutSection, DestinationsSection, SchedulesSection, WhyUsSection, FleetSection, HowToBuySection, TestimonialsSection, CoverageSection } from '@/features/home';
+import { MotionConfig } from 'framer-motion';
+import {
+  Navbar,
+  HeroSection,
+  FooterBanner,
+  AboutSection,
+  DestinationsSection,
+  SchedulesSection,
+  WhyUsSection,
+  FleetSection,
+  HowToBuySection,
+  TestimonialsSection,
+  CoverageSection,
+  PromotionsSection,
+  SiteFooter,
+} from '@/features/home';
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col justify-between bg-slate-950">
+    <MotionConfig reducedMotion="user">
       <Navbar />
-      <HeroSection />
-      <FooterBanner />
-      <AboutSection />
-      <DestinationsSection />
-      <SchedulesSection />
-      <WhyUsSection />
-      <FleetSection />
-      <HowToBuySection />
-      <TestimonialsSection />
-      <CoverageSection />
-
-    </main>
+      <main className="flex min-h-screen flex-col bg-slate-950">
+        <HeroSection />
+        <FooterBanner />
+        <AboutSection />
+        <DestinationsSection />
+        <SchedulesSection />
+        <WhyUsSection />
+        <FleetSection />
+        <HowToBuySection />
+        <TestimonialsSection />
+        <CoverageSection />
+        <PromotionsSection />
+      </main>
+      <SiteFooter />
+    </MotionConfig>
   );
 }

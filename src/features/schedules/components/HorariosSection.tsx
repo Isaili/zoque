@@ -47,7 +47,7 @@ export function HorariosSection() {
       <div className="relative w-full h-[280px] md:h-[340px] bg-[#0A2E1D] overflow-hidden flex items-center">
         {/* Imagen de fondo del hero */}
         <Image
-          src="/images/hero-bg2.png"
+          src="/images/horarios/hero-bg2.png"
           alt="Autobús en carretera"
           fill
           priority

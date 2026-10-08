@@ -1,5 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { Armchair, Clock3, HeartHandshake, MapPin, ShieldCheck, Wallet } from 'lucide-react';
+import { StaggerItem, StaggerList } from '@/components/ui/Reveal';
+import { SectionHeading } from '@/components/ui/SectionHeading';
 
 interface Benefit {
   title: string;
@@ -18,28 +20,50 @@ const BENEFITS: Benefit[] = [
 
 export const WhyUsSection = () => {
   return (
-    <section id="servicios" aria-labelledby="por-que-titulo" className="w-full border-y border-gray-200 bg-gray-100">
-      <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
-        <h2
+    <section
+      id="servicios"
+      aria-labelledby="por-que-titulo"
+      className="relative w-full overflow-hidden bg-zoque-900 py-16 text-white sm:py-20 lg:py-24"
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(200,157,85,0.18)_0%,transparent_55%),radial-gradient(ellipse_at_90%_100%,rgba(31,107,66,0.45)_0%,transparent_60%)]"
+      />
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-10">
+        <SectionHeading
           id="por-que-titulo"
-          className="text-2xl font-extrabold uppercase leading-tight tracking-tight text-[#0D3B23] sm:text-3xl md:text-4xl"
-        >
-          ¿Por qué viajar
-          <span className="block">con Zoque?</span>
-        </h2>
+          tone="dark"
+          eyebrow="Servicios"
+          title={
+            <>
+              ¿Por qué viajar <span className="text-gold">con Zoque?</span>
+            </>
+          }
+          description="Más que un viaje: un servicio pensado para que llegues tranquilo a tu destino."
+        />
 
-        <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
-          {BENEFITS.map(({ title, description, icon: Icon }) => (
-            <li
+        <StaggerList className="mt-12 grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-3" stagger={0.08}>
+          {BENEFITS.map(({ title, description, icon: Icon }, index) => (
+            <StaggerItem
               key={title}
-              className="flex flex-col items-center rounded-xl border border-gray-200 bg-white px-3 py-6 text-center shadow-sm transition-shadow hover:shadow-md"
+              className="group relative flex gap-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm transition-all duration-500 hover:-translate-y-1 hover:border-gold/40 hover:bg-white/[0.07] sm:p-6"
             >
-              <Icon className="h-8 w-8 text-[#0D3B23]" strokeWidth={1.5} aria-hidden />
-              <h3 className="mt-4 text-xs md:text-sm font-bold text-gray-900">{title}</h3>
-              <p className="mt-2 max-w-[10rem] text-[11px] md:text-xs leading-snug text-gray-500">{description}</p>
-            </li>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gold/10 text-gold ring-1 ring-gold/30 transition-all duration-500 group-hover:bg-gold group-hover:text-zoque-900">
+                <Icon className="h-6 w-6" strokeWidth={1.6} aria-hidden />
+              </span>
+              <div>
+                <h3 className="font-serif text-xl italic text-cream">{title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-emerald-50/65">{description}</p>
+              </div>
+              <span
+                aria-hidden
+                className="absolute right-4 top-3 font-serif text-4xl italic text-white/[0.06] transition-colors duration-500 group-hover:text-gold/20"
+              >
+                0{index + 1}
+              </span>
+            </StaggerItem>
           ))}
-        </ul>
+        </StaggerList>
       </div>
     </section>
   );

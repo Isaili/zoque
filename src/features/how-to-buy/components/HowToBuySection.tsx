@@ -1,6 +1,10 @@
-import { Fragment } from 'react';
+'use client';
+
+import { useRef } from 'react';
+import { motion, useScroll, useSpring, useTransform } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
-import { Armchair, ArrowRight, BusFront, CreditCard, History, MapPin } from 'lucide-react';
+import { Armchair, BusFront, CreditCard, History, MapPin } from 'lucide-react';
+import { SectionHeading } from '@/components/ui/SectionHeading';
 
 interface Step {
   label: string;
@@ -15,39 +19,61 @@ const STEPS: Step[] = [
   { label: '¡Disfruta tu viaje!', icon: BusFront },
 ];
 
-export const HowToBuySection = () => {
-  return (
-    <section id="como-comprar" aria-labelledby="como-comprar-titulo" className="w-full border-y border-gray-200 bg-gray-100">
-      <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 sm:py-16">
-        <p className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wide text-[#2A4822]">
-          Cómo comprar un boleto
-        </p>
-        <h2
-          id="como-comprar-titulo"
-          className="mt-2 text-2xl font-extrabold uppercase leading-tight tracking-tight text-[#0D3B23] sm:text-3xl md:text-4xl"
-        >
-          Así de fácil
-          <span className="block">es viajar con Zoque</span>
-        </h2>
+const EASE = [0.22, 1, 0.36, 1] as const;
 
-        <ol className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 lg:flex lg:items-start lg:justify-between lg:gap-0">
+export const HowToBuySection = () => {
+  const listRef = useRef<HTMLOListElement>(null);
+  // La línea del recorrido se dibuja conforme la lista cruza la pantalla
+  const { scrollYProgress } = useScroll({ target: listRef, offset: ['start 85%', 'end 55%'] });
+  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });
+  const lineScale = useTransform(progress, [0, 1], [0, 1]);
+
+  return (
+    <section id="como-comprar" aria-labelledby="como-comprar-titulo" className="w-full bg-sand py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-7xl px-4 sm:px-10">
+        <SectionHeading
+          id="como-comprar-titulo"
+          eyebrow="Cómo comprar un boleto"
+          title={
+            <>
+              Así de fácil <span className="text-gold-dark">es viajar con Zoque</span>
+            </>
+          }
+          align="center"
+        />
+
+        <ol ref={listRef} className="relative mt-14 grid gap-8 lg:grid-cols-5 lg:gap-4">
+          {/* Línea: vertical en celular, horizontal en escritorio */}
+          <span aria-hidden className="absolute bottom-8 left-8 top-8 w-px bg-gray-300 md:left-10 lg:hidden" />
+          <motion.span
+            aria-hidden
+            style={{ scaleY: lineScale }}
+            className="absolute bottom-8 left-8 top-8 w-px origin-top bg-gold md:left-10 lg:hidden"
+          />
+          <span aria-hidden className="absolute left-[10%] right-[10%] top-10 hidden h-px bg-gray-300 lg:block" />
+          <motion.span
+            aria-hidden
+            style={{ scaleX: lineScale }}
+            className="absolute left-[10%] right-[10%] top-10 hidden h-px origin-left bg-gold lg:block"
+          />
+
           {STEPS.map(({ label, icon: Icon }, index) => (
-            <Fragment key={label}>
-              {index > 0 && (
-                <li aria-hidden className="hidden lg:flex lg:h-24 lg:items-center lg:px-2">
-                  <ArrowRight className="h-5 w-5 text-gray-400" />
-                </li>
-              )}
-              <li className="group flex flex-col items-center text-center last:col-span-2 sm:last:col-span-1 lg:w-36">
-                <span className="flex h-20 w-20 items-center justify-center rounded-full border border-gray-200 bg-white text-[#0D3B23] shadow-sm transition-colors group-hover:border-[#0D3B23] group-hover:bg-[#0D3B23] group-hover:text-white md:h-24 md:w-24">
-                  <Icon className="h-8 w-8 md:h-9 md:w-9" strokeWidth={1.5} aria-hidden />
-                </span>
-                <span className="mt-4 flex h-6 w-6 items-center justify-center rounded-full bg-[#0D3B23] text-[11px] font-bold text-white">
+            <motion.li
+              key={label}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.6 }}
+              transition={{ duration: 0.6, delay: index * 0.08, ease: EASE }}
+              className="group relative flex items-center gap-5 lg:flex-col lg:gap-0 lg:text-center"
+            >
+              <span className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-zoque-700 shadow-sm transition-all duration-500 group-hover:-translate-y-1 group-hover:border-zoque-700 group-hover:bg-zoque-700 group-hover:text-gold group-hover:shadow-xl group-hover:shadow-zoque-900/20 md:h-20 md:w-20">
+                <Icon className="h-7 w-7 md:h-8 md:w-8" strokeWidth={1.5} aria-hidden />
+                <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-gold text-[11px] font-bold text-zoque-900 ring-4 ring-sand">
                   {index + 1}
                 </span>
-                <span className="mt-2 max-w-[7rem] text-xs md:text-sm font-medium leading-snug text-gray-800">{label}</span>
-              </li>
-            </Fragment>
+              </span>
+              <span className="font-serif text-xl italic text-gray-900 lg:mt-5 lg:max-w-[9rem] lg:text-lg">{label}</span>
+            </motion.li>
           ))}
         </ol>
       </div>
