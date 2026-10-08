@@ -2,20 +2,14 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useId, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { MessageCircle, Plus } from 'lucide-react';
-import { Reveal, StaggerItem, StaggerList } from '@/components/ui/Reveal';
+import { MessageCircle } from 'lucide-react';
+import { FaqAccordion, type FaqItem } from '@/components/ui/faq-accordion';
+import { Reveal } from '@/components/ui/Reveal';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 
 const WHATSAPP_URL = 'https://wa.me/9611077541';
 
-interface Faq {
-  question: string;
-  answer: string;
-}
-
-const FAQS: Faq[] = [
+const FAQS: FaqItem[] = [
   {
     question: '¿Puedo cambiar mi boleto?',
     answer:
@@ -39,12 +33,7 @@ const FAQS: Faq[] = [
   },
 ];
 
-const EASE = [0.22, 1, 0.36, 1] as const;
-
 export function FaqSection() {
-  const [open, setOpen] = useState<number | null>(0);
-  const baseId = useId();
-
   return (
     <section id="preguntas" aria-labelledby="preguntas-titulo" className="w-full overflow-hidden bg-surface py-16 sm:py-20 lg:py-24">
       <div className="mx-auto grid max-w-7xl gap-12 px-4 sm:px-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-16">
@@ -73,60 +62,9 @@ export function FaqSection() {
         </div>
 
         <div>
-          <StaggerList className="divide-y divide-gray-200 border-y border-gray-200" stagger={0.07}>
-            {FAQS.map(({ question, answer }, index) => {
-              const isOpen = open === index;
-              const buttonId = `${baseId}-q${index}`;
-              const panelId = `${baseId}-a${index}`;
-              return (
-                <StaggerItem key={question}>
-                  <h3>
-                    <button
-                      id={buttonId}
-                      type="button"
-                      aria-expanded={isOpen}
-                      aria-controls={panelId}
-                      onClick={() => setOpen(isOpen ? null : index)}
-                      className="group flex w-full items-center justify-between gap-6 py-5 text-left sm:py-6"
-                    >
-                      <span
-                        className={`font-serif text-lg italic transition-colors sm:text-xl ${
-                          isOpen ? 'text-brand' : 'text-gray-900 group-hover:text-brand'
-                        }`}
-                      >
-                        {question}
-                      </span>
-                      <span
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
-                          isOpen
-                            ? 'rotate-45 border-zoque-700 bg-zoque-700 text-gold'
-                            : 'border-gray-300 text-gray-500 group-hover:border-zoque-700 group-hover:text-brand'
-                        }`}
-                      >
-                        <Plus className="h-4 w-4" aria-hidden />
-                      </span>
-                    </button>
-                  </h3>
-                  <AnimatePresence initial={false}>
-                    {isOpen && (
-                      <motion.div
-                        id={panelId}
-                        role="region"
-                        aria-labelledby={buttonId}
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.4, ease: EASE }}
-                        className="overflow-hidden"
-                      >
-                        <p className="max-w-xl pb-6 pr-12 text-[0.95rem] leading-relaxed text-gray-600">{answer}</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </StaggerItem>
-              );
-            })}
-          </StaggerList>
+          <Reveal delay={0.1}>
+            <FaqAccordion items={FAQS} defaultOpenIndex={0} className="border-y border-gray-200" />
+          </Reveal>
 
           <Reveal delay={0.1} className="mt-8 flex flex-col gap-4 rounded-2xl bg-sand p-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-gray-700">
