@@ -99,7 +99,21 @@ export function SiteFooter() {
 
         <div className="border-t border-white/10">
           <div className="mx-auto flex max-w-7xl flex-col-reverse items-center justify-between gap-4 px-4 py-6 text-xs text-white/45 sm:flex-row sm:px-10">
-            <p>© {new Date().getFullYear()} Auto Transportes Zoque. Todos los derechos reservados.</p>
+            <div className="flex flex-col items-center gap-1 text-center sm:items-start sm:text-left">
+              <p>© {new Date().getFullYear()} Auto Transportes Zoque. Todos los derechos reservados.</p>
+              <p>
+                Desarrollado por{' '}
+                <a
+                  href="https://isaili.github.io/CODEX_SOFTVA/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  translate="no"
+                  className="font-semibold text-gold underline-offset-4 transition-colors hover:text-amber-300 hover:underline"
+                >
+                  Softvana
+                </a>
+              </p>
+            </div>
             <Link
               href="#inicio"
               className="group inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 uppercase tracking-widest text-white/70 transition-colors hover:border-gold hover:text-gold"
